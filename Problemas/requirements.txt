@@ -1,0 +1,33 @@
+# ==========================================
+# Instrucciones de Instalación
+# ==========================================
+# Para instalar todas las dependencias, abre tu terminal y ejecuta:
+# py -m pip install -r requirements.txt
+#
+# ==========================================
+# Configuración del archivo .env
+# ==========================================
+# Crea un archivo llamado ".env" en este mismo directorio con el siguiente contenido:
+#
+# DYNATRACE_URL=https://tu-entorno.live.dynatrace.com
+# DYNATRACE_TOKEN=dt0c01.XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+#
+
+# ------------------------------------------
+# Dependencias comunes
+# ------------------------------------------
+pandas>=2.0.0
+
+# ------------------------------------------
+# Dependencias para Copilot.py (Extracción)
+# ------------------------------------------
+requests>=2.31.0
+python-dotenv>=1.0.0
+xlsxwriter>=3.1.0  # Necesario internamente para que pandas exporte a formato Excel con formato
+
+# ------------------------------------------
+# Dependencias para app.py (Dashboard Streamlit)
+# ------------------------------------------
+streamlit>=1.30.0
+streamlit-echarts>=0.4.0
+openpyxl>=3.1.2    # Necesario internamente para que pandas lea archivos Excel (.xlsx)
