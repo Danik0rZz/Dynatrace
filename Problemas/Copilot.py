@@ -7,6 +7,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
+import urllib3
+
+# =========================
+# Desactiva alertas de certificados
+# =========================
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 
 # =========================
@@ -136,7 +143,7 @@ def fetch_problems(
                 "nextPageKey": next_page_key
             }
 
-        response = requests.get(endpoint, headers=headers, params=params, timeout=60)
+        response = requests.get(endpoint, headers=headers, params=params, timeout=60, verify=False)
 
         if not response.ok:
             print(f"[ERROR] Llamada a Dynatrace falló: {response.status_code} {response.text}")
@@ -285,75 +292,23 @@ def explode_problems(
 
 def export_to_excel(df: pd.DataFrame, filename: str = "dynatrace_problems_report.xlsx") -> None:
     """
-    Exporta el DataFrame a Excel usando xlsxwriter, aplicando formato de cabecera,
-    ajuste de columnas y formato condicional para el estado.
+    Exporta el DataFrame a Excel de forma sencilla (motor: openpyxl).
+    En caso de error (por ejemplo, si no tienes openpyxl instalado), genera un CSV alternativo.
     """
     if df.empty:
-        print("[WARN] DataFrame vacío. No se generará Excel.")
+        print("[WARN] DataFrame vacío. No se generará reporte.")
         return
 
-    with pd.ExcelWriter(filename, engine="xlsxwriter", datetime_format="yyyy-mm-dd hh:mm:ss") as writer:
-        sheet_name = "Problems"
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-        workbook = writer.book
-        worksheet = writer.sheets[sheet_name]
-
-        # Formato de cabecera
-        header_format = workbook.add_format({
-            "bold": True,
-            "text_wrap": True,
-            "valign": "top",
-            "fg_color": "#D7E4BC",
-            "border": 1,
-        })
-
-        for col_num, value in enumerate(df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
-
-        # Ajuste de anchura de columnas (heurístico)
-        for i, col in enumerate(df.columns):
-            # Longitud máxima de la columna (limitada)
-            max_len = max(
-                df[col].astype(str).map(len).max(),
-                len(col)
-            )
-            max_len = min(max_len, 60)
-            worksheet.set_column(i, i, max_len + 2)
-
-        # Formato condicional para la columna Estado
-        estado_col_idx = df.columns.get_loc("Estado")
-
-        red_format = workbook.add_format({"bg_color": "#FFC7CE"})
-        green_format = workbook.add_format({"bg_color": "#C6EFCE"})
-
-        # Rango de celdas de la columna Estado (desde fila 2 hasta n)
-        last_row = len(df) + 1  # +1 por cabecera
-        estado_range = f"{chr(ord('A') + estado_col_idx)}2:{chr(ord('A') + estado_col_idx)}{last_row}"
-
-        # ROJO si Estado = "OPEN"
-        worksheet.conditional_format(
-            estado_range,
-            {
-                "type": "cell",
-                "criteria": "==",
-                "value": '"OPEN"',
-                "format": red_format,
-            },
-        )
-
-        # VERDE si Estado = "CLOSED"
-        worksheet.conditional_format(
-            estado_range,
-            {
-                "type": "cell",
-                "criteria": "==",
-                "value": '"CLOSED"',
-                "format": green_format,
-            },
-        )
-
-    print(f"Excel generado: {filename}")
+    try:
+        # Usa openpyxl explícitamente y guarda sin formato
+        df.to_excel(filename, index=False, engine="openpyxl")
+        print(f"Excel generado correctamente: {filename}")
+    except Exception as e:
+        print(f"[ERROR] No se pudo crear el archivo Excel. Asegúrate de tener openpyxl instalado. Detalles: {e}")
+        csv_filename = filename.replace(".xlsx", ".csv")
+        print(f"Generando versión en formato CSV como alternativa...")
+        df.to_csv(csv_filename, index=False, sep=";", encoding="utf-8-sig")
+        print(f"Reporte generado: {csv_filename}")
 
 
 # ==========================
