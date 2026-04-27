@@ -226,6 +226,23 @@ def explode_problems(
         start_dt = ms_to_datetime(start_time_ms)
         end_dt = ms_to_datetime(end_time_ms)
 
+        dia = ""
+        mes_esp = ""
+        anio = ""
+        hora_hh = ""
+        semana_iso = ""
+        if start_dt:
+            dia = start_dt.day
+            meses = {
+                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+            }
+            mes_esp = meses.get(start_dt.month, "")
+            anio = start_dt.year
+            hora_hh = start_dt.strftime("%H")
+            semana_iso = start_dt.isocalendar()[1]
+
         root_cause_entity = p.get("rootCauseEntity") or {}
         root_cause_name = root_cause_entity.get("name", "")
         root_cause_type = root_cause_entity.get("entityId", {}).get("type", "")
@@ -252,6 +269,11 @@ def explode_problems(
                 "CausaRaizTipo": root_cause_type,
                 "CausaRaizID": root_cause_id,
                 "Inicio": start_dt,
+                "Dia": dia,
+                "Mes": mes_esp,
+                "Año": anio,
+                "Hora": hora_hh,
+                "Semana": semana_iso,
                 "Fin": end_dt,
                 "DuracionMinutos": duration_minutes,
             })
@@ -278,6 +300,11 @@ def explode_problems(
                 "CausaRaizTipo": root_cause_type,
                 "CausaRaizID": root_cause_id,
                 "Inicio": start_dt,
+                "Dia": dia,
+                "Mes": mes_esp,
+                "Año": anio,
+                "Hora": hora_hh,
+                "Semana": semana_iso,
                 "Fin": end_dt,
                 "DuracionMinutos": duration_minutes,
             })
