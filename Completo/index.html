@@ -1,0 +1,1795 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f6f5">
+  <meta name="description" content="Propuesta interactiva para implantar un framework corporativo de monitorización y observabilidad con Dynatrace.">
+  <title>Framework de monitorización con Dynatrace</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #102023;
+      --muted: #526569;
+      --subtle: #758589;
+      --canvas: #f2f6f5;
+      --paper: #ffffff;
+      --paper-alt: #e7efed;
+      --line: #cdd9d7;
+      --line-strong: #9eb1ae;
+      --accent: #007d87;
+      --accent-strong: #005e66;
+      --accent-soft: #d9f0f0;
+      --accent-ink: #003b40;
+      --shadow: 0 18px 55px rgba(16, 32, 35, 0.09);
+      --radius: 12px;
+      --max: 1240px;
+      --header: 72px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header) + 22px); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Aptos, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, input, select { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    a { color: var(--accent-strong); text-underline-offset: 3px; }
+    a:hover { color: var(--ink); }
+    img, svg { display: block; max-width: 100%; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { text-wrap: balance; }
+    h1 { font-size: clamp(2.65rem, 6vw, 5.65rem); line-height: 0.96; letter-spacing: -0.065em; font-weight: 680; }
+    h2 { font-size: clamp(2rem, 4vw, 3.65rem); line-height: 1.02; letter-spacing: -0.045em; font-weight: 650; }
+    h3 { font-size: 1.18rem; line-height: 1.25; letter-spacing: -0.02em; }
+    p { color: var(--muted); }
+    code {
+      padding: 0.12rem 0.35rem;
+      border-radius: 5px;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 0.88em;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 1000;
+      top: 10px;
+      left: 10px;
+      transform: translateY(-160%);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--accent-strong);
+    }
+    .skip-link:focus { transform: none; }
+
+    .scroll-progress {
+      position: fixed;
+      z-index: 999;
+      inset: 0 auto auto 0;
+      width: 0;
+      height: 3px;
+      background: var(--accent);
+    }
+
+    .site-header {
+      position: sticky;
+      z-index: 900;
+      top: 0;
+      min-height: var(--header);
+      border-bottom: 1px solid rgba(158, 177, 174, 0.65);
+      background: rgba(242, 246, 245, 0.94);
+      backdrop-filter: blur(16px);
+    }
+    .header-inner {
+      position: relative;
+      width: min(calc(100% - 40px), var(--max));
+      min-height: var(--header);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.8rem;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 680;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent-strong);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+    .nav-toggle {
+      display: none;
+      min-width: 44px;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: var(--paper);
+      cursor: pointer;
+    }
+    .site-nav { display: flex; align-items: center; gap: 1.25rem; }
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 620;
+      white-space: nowrap;
+    }
+    .site-nav a:hover, .site-nav a[aria-current="location"] { color: var(--accent-strong); }
+
+    .container { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+    .section { padding: clamp(5rem, 10vw, 9rem) 0; }
+    .section-tight { padding: clamp(3.5rem, 7vw, 6rem) 0; }
+    .section-paper { background: var(--paper); }
+    .section-ink { color: #eff9f7; background: #102023; }
+    .section-ink p, .section-ink .section-intro { color: #b9cac7; }
+    .section-ink .eyebrow { color: #75d5d7; }
+    .section-ink .section-rule { border-color: #385052; }
+    .eyebrow {
+      display: block;
+      margin-bottom: 1.1rem;
+      color: var(--accent-strong);
+      font-size: 0.76rem;
+      font-weight: 750;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.45fr);
+      align-items: end;
+      gap: clamp(2rem, 7vw, 8rem);
+      margin-bottom: clamp(2.8rem, 5vw, 5rem);
+    }
+    .section-head h2 { margin-bottom: 0; }
+    .section-intro { margin-bottom: 0; max-width: 52ch; font-size: 1.05rem; }
+    .section-rule { margin: 0 0 2.3rem; border: 0; border-top: 1px solid var(--line); }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100dvh - var(--header));
+      display: grid;
+      align-items: center;
+      padding: clamp(3rem, 7vw, 6.5rem) 0 3rem;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: auto -12vw -26vw auto;
+      width: 55vw;
+      aspect-ratio: 1;
+      border: 1px solid rgba(0, 125, 135, 0.18);
+      border-radius: 50%;
+      box-shadow: 0 0 0 10vw rgba(0, 125, 135, 0.035), 0 0 0 20vw rgba(0, 125, 135, 0.025);
+      pointer-events: none;
+    }
+    .hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(310px, 0.52fr);
+      gap: clamp(3rem, 8vw, 8rem);
+      align-items: end;
+    }
+    .hero h1 { max-width: none; margin-bottom: 1.5rem; font-size: clamp(2.9rem, 5vw, 4.7rem); }
+    .hero h1 span { color: var(--accent); }
+    .hero-copy > p { max-width: 57ch; margin-bottom: 2rem; font-size: clamp(1.05rem, 1.6vw, 1.25rem); }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .btn {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.72rem 1rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      color: var(--ink);
+      background: var(--paper);
+      text-decoration: none;
+      font-weight: 680;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+    .btn:hover { transform: translateY(-2px); border-color: var(--accent); color: var(--ink); }
+    .btn-primary { border-color: var(--accent-strong); color: #fff; background: var(--accent-strong); }
+    .btn-primary:hover { color: #fff; background: #004b52; }
+    .btn-quiet { background: transparent; }
+    .hero-side {
+      padding: 1.7rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+    }
+    .hero-side h2 { margin-bottom: 1.25rem; font-size: 1.05rem; letter-spacing: -0.02em; }
+    .outcome-list { margin: 0; padding: 0; list-style: none; }
+    .outcome-list li {
+      display: grid;
+      grid-template-columns: 2.2rem 1fr;
+      gap: 0.75rem;
+      padding: 0.9rem 0;
+      border-top: 1px solid var(--line);
+    }
+    .outcome-list li:first-child { border-top: 0; padding-top: 0; }
+    .outcome-list strong { color: var(--accent-strong); font-size: 0.78rem; letter-spacing: 0.08em; }
+    .outcome-list span { color: var(--muted); font-size: 0.92rem; }
+    .hero-meta {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem 2rem;
+      margin-top: 2.5rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--line);
+      color: var(--subtle);
+      font-size: 0.82rem;
+    }
+
+    .thesis-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      gap: clamp(2rem, 6vw, 6rem);
+    }
+    .thesis-quote {
+      margin: 0;
+      max-width: 19ch;
+      font-size: clamp(1.75rem, 3.4vw, 3.1rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      font-weight: 620;
+    }
+    .principles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+    .principle { min-height: 205px; padding: 1.65rem; background: var(--paper); }
+    .principle:nth-child(2), .principle:nth-child(3) { background: var(--paper-alt); }
+    .principle-index { display: block; margin-bottom: 2.6rem; color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.78rem; }
+    .principle h3 { margin-bottom: 0.5rem; }
+    .principle p { margin-bottom: 0; font-size: 0.94rem; }
+
+    .architecture-shell {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.38fr) minmax(0, 1fr);
+      gap: 1.3rem;
+      align-items: stretch;
+    }
+    .stage-list { display: grid; gap: 0.55rem; }
+    .stage-button {
+      width: 100%;
+      min-height: 68px;
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .stage-button span:first-child { color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.78rem; }
+    .stage-button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+    .stage-button strong { display: block; }
+    .stage-button small { display: block; color: var(--muted); }
+    .stage-detail {
+      min-height: 410px;
+      padding: clamp(1.5rem, 4vw, 3.2rem);
+      border-radius: var(--radius);
+      background: #102023;
+      color: #eff9f7;
+    }
+    .stage-detail .stage-number { color: #75d5d7; font-family: Consolas, monospace; font-size: 0.8rem; letter-spacing: 0.1em; }
+    .stage-detail h3 { margin: 1.1rem 0 0.75rem; font-size: clamp(1.6rem, 3vw, 2.6rem); }
+    .stage-detail > p { max-width: 66ch; color: #b9cac7; }
+    .stage-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .stage-detail-box { padding-top: 1rem; border-top: 1px solid #385052; }
+    .stage-detail-box strong { display: block; margin-bottom: 0.5rem; color: #eff9f7; }
+    .stage-detail-box ul { margin: 0; padding-left: 1.05rem; color: #b9cac7; }
+    .stage-detail-box li + li { margin-top: 0.3rem; }
+    .source-inline { margin-top: 1.4rem; font-size: 0.82rem; }
+    .source-inline a { color: #75d5d7; }
+
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.55rem; margin-bottom: 1.4rem; }
+    .filter-button {
+      min-height: 44px;
+      padding: 0.58rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--muted);
+      background: var(--paper);
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .filter-button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+    .coverage-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr); gap: 1.3rem; align-items: start; }
+    .coverage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+    .coverage-card {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 1.25rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: var(--paper);
+      text-align: left;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease;
+    }
+    .coverage-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .coverage-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+    .coverage-card[hidden] { display: none; }
+    .coverage-card small { margin-bottom: auto; color: var(--accent-strong); font-weight: 700; }
+    .coverage-card strong { margin: 1.2rem 0 0.55rem; font-size: 1.08rem; }
+    .coverage-card span { color: var(--muted); font-size: 0.9rem; }
+    .coverage-detail {
+      position: sticky;
+      top: calc(var(--header) + 20px);
+      min-height: 430px;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper-alt);
+    }
+    .coverage-detail-label { color: var(--accent-strong); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; }
+    .coverage-detail h3 { margin: 0.9rem 0; font-size: 1.6rem; }
+    .coverage-detail h4 { margin: 1.2rem 0 0.45rem; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .coverage-detail ul { margin: 0; padding-left: 1.1rem; color: var(--muted); }
+    .coverage-detail li + li { margin-top: 0.35rem; }
+
+    .capability-index {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      margin-bottom: clamp(3rem, 7vw, 6rem);
+      border: 1px solid var(--line);
+      background: var(--line);
+    }
+    .capability-index a {
+      min-height: 138px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.2rem;
+      padding: 1.2rem;
+      color: var(--ink);
+      background: var(--paper);
+      text-decoration: none;
+    }
+    .capability-index a:hover { color: var(--accent-ink); background: var(--accent-soft); }
+    .capability-index span { color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.75rem; letter-spacing: 0.08em; }
+    .capability-index strong { font-size: 1.08rem; }
+    .monitoring-capability { padding: clamp(3rem, 7vw, 6rem) 0; border-top: 1px solid var(--line-strong); scroll-margin-top: calc(var(--header) + 24px); }
+    .monitoring-capability:last-child { padding-bottom: 0; }
+    .capability-heading { display: grid; grid-template-columns: minmax(210px, 0.42fr) minmax(0, 1fr); gap: clamp(2rem, 7vw, 7rem); align-items: start; }
+    .capability-number { display: block; color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.78rem; letter-spacing: 0.1em; }
+    .capability-heading h3 { margin: 0.8rem 0 0; font-size: clamp(1.8rem, 4vw, 3.3rem); }
+    .capability-lead { margin: 0; color: var(--ink); font-size: clamp(1.05rem, 2vw, 1.35rem); line-height: 1.5; }
+    .fact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 2rem 0; background: var(--line); }
+    .fact-block { min-height: 180px; padding: 1.25rem; background: var(--paper); }
+    .fact-block strong { display: block; margin-bottom: 0.65rem; }
+    .fact-block p, .fact-block ul { margin-bottom: 0; color: var(--muted); font-size: 0.9rem; }
+    .fact-block ul { padding-left: 1.05rem; }
+    .fact-block li + li { margin-top: 0.35rem; }
+    .capability-subhead { margin: 2.7rem 0 1rem; font-size: 1.35rem; }
+    .capability-note { margin: 1rem 0 0; padding: 1rem 1.1rem; border-left: 3px solid var(--accent); color: var(--muted); background: var(--paper-alt); }
+    .capability-note strong { color: var(--ink); }
+    .implementation-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.6rem; margin: 1.4rem 0 0; }
+    .implementation-flow div { min-height: 118px; padding: 1rem; border-top: 3px solid var(--accent); background: var(--paper-alt); }
+    .implementation-flow span { display: block; margin-bottom: 0.45rem; color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.74rem; }
+    .implementation-flow strong { display: block; font-size: 0.9rem; }
+    .implementation-flow small { display: block; margin-top: 0.35rem; color: var(--muted); }
+    .official-docs { display: grid; grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr); gap: 2rem; margin-top: 2rem; padding: 1.5rem; border: 1px solid rgba(0, 125, 135, 0.35); border-radius: var(--radius); background: var(--accent-soft); }
+    .official-docs h4 { margin: 0; color: var(--accent-ink); font-size: 1rem; }
+    .official-docs ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem 1.5rem; margin: 0; padding: 0; list-style: none; }
+    .official-docs a { font-size: 0.9rem; font-weight: 650; }
+    .official-docs small { display: block; color: var(--muted); }
+    .status-tag { display: inline-block; margin-bottom: 0.7rem; padding: 0.25rem 0.5rem; border: 1px solid var(--line-strong); border-radius: 20px; color: var(--accent-strong); background: var(--paper); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    .loop-layout { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.62fr); gap: clamp(2rem, 6vw, 6rem); }
+    .loop-list { position: relative; display: grid; gap: 0; }
+    .loop-list::before { content: ""; position: absolute; top: 2rem; bottom: 2rem; left: 1.55rem; width: 1px; background: var(--line); }
+    .loop-button {
+      position: relative;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 3.1rem 1fr;
+      gap: 1rem;
+      padding: 1rem 0;
+      border: 0;
+      color: var(--ink);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .loop-button > span:first-child {
+      z-index: 1;
+      width: 3.1rem;
+      height: 3.1rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--accent-strong);
+      background: var(--canvas);
+      font-family: Consolas, monospace;
+      font-size: 0.78rem;
+    }
+    .loop-button > span:last-child { min-width: 0; }
+    .loop-button[aria-selected="true"] > span:first-child { border-color: var(--accent); color: #fff; background: var(--accent); }
+    .loop-button strong { display: block; margin-top: 0.35rem; }
+    .loop-button small { color: var(--muted); }
+    .loop-detail { min-height: 100%; padding: clamp(1.6rem, 4vw, 3rem); border-radius: var(--radius); background: var(--accent-soft); }
+    .loop-detail h3 { font-size: clamp(1.6rem, 3vw, 2.5rem); }
+    .loop-detail-grid { display: grid; gap: 1rem; margin-top: 2rem; }
+    .loop-detail-grid div { padding-top: 1rem; border-top: 1px solid rgba(0, 94, 102, 0.25); }
+    .loop-detail-grid strong { display: block; margin-bottom: 0.35rem; }
+    .loop-detail-grid p { margin: 0; }
+
+    .slo-grid { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.1fr); gap: clamp(2rem, 6vw, 6rem); align-items: start; }
+    .formula { padding: 1.1rem; border-left: 3px solid var(--accent); background: var(--paper-alt); color: var(--muted); font-size: 0.94rem; }
+    .calculator { padding: clamp(1.4rem, 4vw, 2.5rem); border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); box-shadow: var(--shadow); }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    label { display: grid; gap: 0.38rem; color: var(--ink); font-size: 0.88rem; font-weight: 650; }
+    input, select {
+      width: 100%;
+      min-height: 46px;
+      padding: 0.68rem 0.75rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      color: var(--ink);
+      background: #fff;
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid rgba(0, 125, 135, 0.42); outline-offset: 3px; }
+    .calc-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 1.5rem; background: var(--line); }
+    .calc-result { min-height: 120px; padding: 1rem; background: var(--paper-alt); }
+    .calc-result span { display: block; color: var(--muted); font-size: 0.78rem; }
+    .calc-result strong { display: block; margin: 0.4rem 0; color: var(--accent-strong); font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -0.04em; }
+    .calc-result small { color: var(--subtle); }
+    .calc-advice { margin: 1rem 0 0; padding: 1rem; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); }
+
+    .signal-grid { display: grid; grid-template-columns: 1.35fr repeat(2, 1fr); gap: 1px; background: var(--line); }
+    .signal { min-height: 180px; padding: 1.4rem; background: var(--paper); }
+    .signal:first-child { grid-row: span 2; background: var(--accent-soft); }
+    .signal code { display: inline-block; margin-bottom: 1.1rem; }
+    .signal p { margin-bottom: 0; font-size: 0.92rem; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 0.9rem 0.85rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--ink); background: var(--paper-alt); font-size: 0.78rem; letter-spacing: 0.04em; }
+    td { color: var(--muted); font-size: 0.9rem; }
+    tbody tr:last-child td { border-bottom: 0; }
+    td.raci { text-align: center; color: var(--accent-strong); font-weight: 750; }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; color: var(--muted); font-size: 0.83rem; }
+    .legend strong { color: var(--accent-strong); }
+
+    .route-flow { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: 0.55rem; margin: 2rem 0 0; }
+    .route-step { position: relative; min-height: 118px; padding: 1rem; border-top: 3px solid var(--accent); background: var(--paper-alt); }
+    .route-step:not(:last-child)::after { content: ">"; position: absolute; top: 43%; right: -0.48rem; z-index: 2; color: var(--accent-strong); font-family: Consolas, monospace; font-weight: 700; }
+    .route-step strong { display: block; margin-bottom: 0.4rem; font-size: 0.9rem; }
+    .route-step span { color: var(--muted); font-size: 0.79rem; }
+
+    .roadmap-nav { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 1px; margin-bottom: 1px; background: var(--line); }
+    .phase-button { min-height: 105px; padding: 1rem; border: 0; color: var(--ink); background: var(--paper); text-align: left; cursor: pointer; }
+    .phase-button span { display: block; margin-bottom: 0.55rem; color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.75rem; }
+    .phase-button small { display: block; margin-top: 0.35rem; color: var(--muted); }
+    .phase-button[aria-selected="true"] { color: #fff; background: var(--accent-strong); }
+    .phase-button[aria-selected="true"] span, .phase-button[aria-selected="true"] small { color: #c8eeee; }
+    .roadmap-detail { display: grid; grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr); gap: clamp(2rem, 5vw, 5rem); min-height: 420px; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid var(--line); background: var(--paper); }
+    .phase-kicker { color: var(--accent-strong); font-size: 0.78rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    .roadmap-detail h3 { margin: 0.8rem 0; font-size: clamp(1.8rem, 4vw, 3.2rem); }
+    .phase-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+    .phase-columns h4 { margin: 0 0 0.6rem; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .phase-columns ul { margin: 0; padding-left: 1.05rem; color: var(--muted); }
+    .phase-columns li + li { margin-top: 0.45rem; }
+    .gate { grid-column: 1 / -1; padding: 1rem; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+
+    .deliverable-groups { display: grid; grid-template-columns: 0.8fr 1.2fr 0.95fr; gap: 1.1rem; }
+    .deliverable-group { padding: 1.4rem; border-top: 3px solid var(--accent); background: var(--paper); }
+    .deliverable-group h3 { margin-bottom: 1.2rem; }
+    .deliverable-group ol { margin: 0; padding-left: 1.25rem; color: var(--muted); }
+    .deliverable-group li + li { margin-top: 0.65rem; }
+
+    .assessment-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.42fr); gap: 1.4rem; align-items: start; }
+    .check-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .check-group { padding: 1.3rem; border: 1px solid #385052; border-radius: var(--radius); background: #172b2e; }
+    .check-group h3 { color: #eff9f7; }
+    .check-item { display: grid; grid-template-columns: 1.25rem 1fr; gap: 0.7rem; align-items: start; margin-top: 0.8rem; color: #c5d4d2; font-weight: 450; cursor: pointer; }
+    .check-item input { width: 1.1rem; min-height: auto; height: 1.1rem; margin-top: 0.18rem; accent-color: #75d5d7; }
+    .assessment-result { position: sticky; top: calc(var(--header) + 20px); padding: 1.6rem; border-radius: var(--radius); color: var(--ink); background: #eff9f7; }
+    .score-value { display: block; margin: 0.8rem 0 0.2rem; color: var(--accent-strong); font-size: clamp(3.5rem, 8vw, 6rem); line-height: 1; letter-spacing: -0.07em; }
+    .score-label { color: var(--muted); }
+    .score-track { height: 8px; margin: 1.2rem 0; border-radius: 20px; background: #c9d7d5; overflow: hidden; }
+    .score-bar { width: 0; height: 100%; background: var(--accent); transition: width 220ms ease; }
+    .maturity-name { margin-bottom: 0.35rem; font-size: 1.25rem; }
+    .assessment-result .actions { margin-top: 1.2rem; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+    .kpi { min-height: 165px; padding: 1.3rem; background: var(--paper); }
+    .kpi:nth-child(3n + 1) { background: var(--paper-alt); }
+    .kpi strong { display: block; margin-bottom: 0.5rem; }
+    .kpi p { margin-bottom: 0.7rem; font-size: 0.9rem; }
+    .kpi small { color: var(--accent-strong); font-weight: 650; }
+
+    .accordion-stack { border-top: 1px solid var(--line); }
+    details { border-bottom: 1px solid var(--line); }
+    summary { display: grid; grid-template-columns: 2rem 1fr auto; gap: 0.9rem; align-items: center; padding: 1.1rem 0; cursor: pointer; font-weight: 680; }
+    summary::marker { content: ""; }
+    summary span:first-child { color: var(--accent-strong); font-family: Consolas, monospace; font-size: 0.78rem; }
+    summary span:last-child { color: var(--accent-strong); }
+    details[open] summary span:last-child { transform: rotate(45deg); }
+    .detail-body { padding: 0 3rem 1.3rem; color: var(--muted); }
+
+    .inputs-grid { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: clamp(2rem, 6vw, 6rem); }
+    .input-list { margin: 0; padding: 0; list-style: none; counter-reset: required; }
+    .input-list li { counter-increment: required; display: grid; grid-template-columns: 2.3rem 1fr; gap: 0.8rem; padding: 0.9rem 0; border-top: 1px solid var(--line); color: var(--muted); }
+    .input-list li::before { content: counter(required, decimal-leading-zero); color: var(--accent-strong); font-family: Consolas, monospace; }
+    .decision-box { padding: 1.6rem; border-radius: var(--radius); background: var(--accent-soft); }
+    .decision-box h3 { font-size: 1.45rem; }
+    .decision-box ul { margin: 0; padding-left: 1.1rem; color: var(--muted); }
+
+    .source-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4rem; }
+    .source-group { padding-top: 1rem; border-top: 2px solid var(--accent); }
+    .source-group h3 { margin-bottom: 1rem; }
+    .source-group ul { margin: 0; padding: 0; list-style: none; }
+    .source-group li + li { margin-top: 0.75rem; }
+    .source-group a { font-size: 0.9rem; }
+    .source-group small { display: block; color: var(--subtle); }
+
+    .site-footer { padding: 2.5rem 0; border-top: 1px solid var(--line); }
+    .footer-grid { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .footer-grid p { margin: 0; font-size: 0.84rem; }
+
+    /* El contenido permanece legible incluso antes de que JavaScript inicialice los observadores. */
+    .reveal { opacity: 1; transform: none; }
+
+    .stage-button:hover, .stage-button:focus-visible { border-color: var(--accent); background: var(--accent-soft); }
+    .filter-button:hover, .filter-button:focus-visible { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+    .loop-button:hover strong, .loop-button:focus-visible strong { color: var(--accent-strong); }
+    .phase-button:hover, .phase-button:focus-visible { background: var(--paper-alt); }
+    .phase-button[aria-selected="true"]:hover, .phase-button[aria-selected="true"]:focus-visible { color: #fff; background: #004b52; }
+
+    @media (max-width: 1050px) {
+      .nav-toggle { display: inline-grid; place-items: center; }
+      .site-nav {
+        position: absolute;
+        top: calc(100% + 1px);
+        right: 0;
+        left: 0;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+      .site-nav.is-open { display: flex; }
+      .site-nav a, .site-nav a:nth-child(n + 6) { display: block; padding: 0.75rem; }
+      .coverage-layout, .assessment-layout { grid-template-columns: 1fr; }
+      .coverage-detail, .assessment-result { position: static; }
+      .capability-index { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .implementation-flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .route-flow { grid-template-columns: repeat(4, 1fr); }
+      .route-step:not(:last-child)::after { display: none; }
+      .roadmap-nav { grid-template-columns: repeat(3, 1fr); }
+      .deliverable-groups { grid-template-columns: repeat(2, 1fr); }
+      .deliverable-group:last-child { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 760px) {
+      :root { --header: 64px; }
+      .container, .header-inner { width: min(calc(100% - 28px), var(--max)); }
+      .hero { min-height: auto; }
+      .hero-grid, .section-head, .thesis-grid, .architecture-shell, .loop-layout, .slo-grid, .roadmap-detail, .inputs-grid { grid-template-columns: 1fr; }
+      .capability-heading, .official-docs { grid-template-columns: 1fr; }
+      .hero h1 { max-width: 13ch; }
+      .hero-side { box-shadow: none; }
+      .principles, .coverage-grid, .check-groups, .kpi-grid, .field-grid, .calc-results, .signal-grid, .source-groups { grid-template-columns: 1fr; }
+      .fact-grid, .official-docs ul { grid-template-columns: 1fr; }
+      .implementation-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .principle:nth-child(2), .principle:nth-child(3) { background: var(--paper); }
+      .stage-detail-grid, .phase-columns { grid-template-columns: 1fr; }
+      .loop-list { gap: 0.6rem; }
+      .loop-list::before { display: none; }
+      .loop-button {
+        grid-template-columns: 3.1rem minmax(0, 1fr);
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+      }
+      .loop-button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+      .loop-button strong { margin-top: 0; }
+      .loop-button small { display: block; margin-top: 0.2rem; line-height: 1.4; }
+      .signal:first-child { grid-row: auto; }
+      .route-flow {
+        display: flex;
+        gap: 0.75rem;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        padding: 0 0 0.65rem;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+      .route-step { flex: 0 0 min(72vw, 260px); scroll-snap-align: start; }
+      .roadmap-nav { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
+      .phase-button { min-width: 165px; scroll-snap-align: start; }
+      .deliverable-groups { grid-template-columns: 1fr; }
+      .deliverable-group:last-child { grid-column: auto; }
+      .detail-body { padding-left: 0; }
+      summary { grid-template-columns: 1.7rem 1fr auto; }
+    }
+
+    @media (max-width: 430px) {
+      .actions .btn { width: 100%; }
+      .hero-meta { display: grid; }
+      .capability-index, .implementation-flow { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      .site-header, .scroll-progress, .actions, .filter-bar, .assessment-result .btn { display: none !important; }
+      body { background: #fff; }
+      .section, .section-tight { padding: 2rem 0; break-inside: avoid; }
+      .hero { min-height: auto; }
+      .reveal { opacity: 1; transform: none; }
+      .coverage-detail, .assessment-result { position: static; }
+      a { color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#inicio" aria-label="Volver al inicio">
+        <span class="brand-mark" aria-hidden="true">FM</span>
+        <span>Framework Dynatrace</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav">Menú</button>
+      <nav class="site-nav" id="main-nav" aria-label="Navegación principal">
+        <a href="#propuesta">Propuesta</a>
+        <a href="#arquitectura">Arquitectura</a>
+        <a href="#cobertura">Cobertura</a>
+        <a href="#capacidades-monitorizacion">Capacidades</a>
+        <a href="#operacion">Operación</a>
+        <a href="#roadmap">Roadmap</a>
+        <a href="#evaluacion">Evaluación</a>
+        <a href="#fuentes">Fuentes</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" id="inicio">
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <span class="eyebrow">Propuesta de referencia · Agosto 2026</span>
+          <h1>Monitorizar para <span>decidir</span>, no solo para mirar.</h1>
+          <p>Un marco corporativo para convertir telemetría de Dynatrace en fiabilidad medible, respuesta operativa y mejora continua con ownership y coste controlado.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#roadmap">Ver plan de implantación</a>
+            <a class="btn btn-quiet" href="#evaluacion">Evaluar madurez actual</a>
+          </div>
+        </div>
+
+        <aside class="hero-side reveal" aria-label="Resultados esperados">
+          <h2>Resultado del proyecto</h2>
+          <ol class="outcome-list">
+            <li><strong>01</strong><span>Catálogo de servicios, journeys críticos y propietarios.</span></li>
+            <li><strong>02</strong><span>Cobertura end-to-end con señales contextualizadas.</span></li>
+            <li><strong>03</strong><span>SLI/SLO, alertas accionables y respuesta automatizada.</span></li>
+            <li><strong>04</strong><span>Observabilidad como código, seguridad y FinOps.</span></li>
+          </ol>
+        </aside>
+
+        <div class="hero-meta">
+          <span>Alcance: experiencia, aplicaciones, plataforma, datos, seguridad y operación</span>
+          <span>Enfoque: producto de plataforma + federación por equipos</span>
+          <span>Horizonte inicial: 90 días para el primer servicio crítico</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="propuesta">
+      <div class="container">
+        <div class="thesis-grid">
+          <div class="reveal">
+            <span class="eyebrow">Tesis de la propuesta</span>
+            <p class="thesis-quote">Dynatrace es el motor. El framework es el acuerdo operativo que hace que sus datos produzcan decisiones repetibles.</p>
+          </div>
+          <div class="principles reveal">
+            <article class="principle">
+              <span class="principle-index">01 / Impacto</span>
+              <h3>Empezar por journeys y servicios</h3>
+              <p>Priorizar lo que percibe el usuario y sostiene el negocio antes que la exhaustividad técnica.</p>
+            </article>
+            <article class="principle">
+              <span class="principle-index">02 / Contexto</span>
+              <h3>Una semántica común</h3>
+              <p>Owner, producto, entorno, versión y coste deben viajar con métricas, logs, spans y eventos.</p>
+            </article>
+            <article class="principle">
+              <span class="principle-index">03 / Acción</span>
+              <h3>Alertar sobre síntomas</h3>
+              <p>Las notificaciones nacen del impacto y del error budget. Las causas quedan para diagnóstico.</p>
+            </article>
+            <article class="principle">
+              <span class="principle-index">04 / Escala</span>
+              <h3>Plataforma con autoservicio</h3>
+              <p>Un equipo central mantiene guardrails; cada equipo de producto posee sus SLO y runbooks.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="arquitectura">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Arquitectura objetivo</span>
+            <h2>De la señal cruda a una acción con contexto.</h2>
+          </div>
+          <p class="section-intro">El diseño desacopla captura, procesamiento, almacenamiento y actuación. Así se puede cambiar la instrumentación sin romper el modelo operativo.</p>
+        </header>
+
+        <div class="architecture-shell reveal">
+          <div class="stage-list" role="tablist" aria-label="Capas de la arquitectura">
+            <button class="stage-button" type="button" role="tab" aria-selected="true" data-stage="capture"><span>01</span><span><strong>Capturar</strong><small>Agentes, OTel, APIs y experiencia</small></span></button>
+            <button class="stage-button" type="button" role="tab" aria-selected="false" data-stage="transport"><span>02</span><span><strong>Transportar</strong><small>ActiveGate y zonas de red</small></span></button>
+            <button class="stage-button" type="button" role="tab" aria-selected="false" data-stage="process"><span>03</span><span><strong>Procesar</strong><small>OpenPipeline y gobierno del dato</small></span></button>
+            <button class="stage-button" type="button" role="tab" aria-selected="false" data-stage="context"><span>04</span><span><strong>Contextualizar</strong><small>Grail, Smartscape y DQL</small></span></button>
+            <button class="stage-button" type="button" role="tab" aria-selected="false" data-stage="act"><span>05</span><span><strong>Decidir y actuar</strong><small>Intelligence, Problems y Workflows</small></span></button>
+          </div>
+
+          <article class="stage-detail" id="stage-detail" role="tabpanel" aria-live="polite">
+            <span class="stage-number">CAPA 01</span>
+            <h3>Captura híbrida, elegida por caso de uso</h3>
+            <p>OneAgent para descubrimiento y profundidad automática; Dynatrace Operator en Kubernetes; OpenTelemetry para estándares abiertos; RUM y Synthetic para experiencia; integraciones cloud, extensiones y APIs para el resto.</p>
+            <div class="stage-detail-grid">
+              <div class="stage-detail-box"><strong>Componentes</strong><ul><li>OneAgent y Operator</li><li>OpenTelemetry Collector y OTLP</li><li>RUM, Synthetic, APIs y Extensions</li></ul></div>
+              <div class="stage-detail-box"><strong>Guardrail</strong><ul><li>Elegir por valor y acceso</li><li>Evitar doble instrumentación</li><li>Validar overhead y volumen</li></ul></div>
+            </div>
+            <p class="source-inline"><a href="https://docs.dynatrace.com/docs/deploy-dynatrace/oneagent/installation/how-do-i-install-dynatrace-oneagent" target="_blank" rel="noreferrer">Fuente oficial sobre ingestión</a></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="cobertura">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Matriz de cobertura</span>
+            <h2>Cobertura suficiente, trazable y ligada a criticidad.</h2>
+          </div>
+          <p class="section-intro">Selecciona un dominio y una capacidad para ver señales mínimas, resultado esperado y criterio de aceptación.</p>
+        </header>
+
+        <div class="filter-bar reveal" aria-label="Filtrar cobertura">
+          <button class="filter-button" type="button" aria-pressed="true" data-filter="all">Todo</button>
+          <button class="filter-button" type="button" aria-pressed="false" data-filter="experience">Experiencia</button>
+          <button class="filter-button" type="button" aria-pressed="false" data-filter="application">Aplicación</button>
+          <button class="filter-button" type="button" aria-pressed="false" data-filter="platform">Plataforma</button>
+          <button class="filter-button" type="button" aria-pressed="false" data-filter="operations">Operación</button>
+        </div>
+
+        <div class="coverage-layout">
+          <div class="coverage-grid reveal" id="coverage-grid">
+            <button class="coverage-card" type="button" aria-pressed="true" data-area="experience" data-label="Experiencia" data-title="Real User Monitoring" data-summary="Experiencia real por aplicación, journey, región, dispositivo y versión." data-signals="Apdex o Core Web Vitals|Errores JavaScript y acciones fallidas|Usuarios, sesiones y conversión" data-dod="Journey crítico identificado|Propiedades sin PII validadas|Dashboard de producto y SLO de experiencia"><small>Núcleo</small><strong>Real User Monitoring</strong><span>Percepción real de web, móvil e híbrido.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="experience" data-label="Experiencia" data-title="Synthetic Monitoring" data-summary="Disponibilidad proactiva desde ubicaciones públicas o privadas, incluso sin tráfico real." data-signals="Disponibilidad HTTP|Tiempo de paso de clickpath|Certificados y endpoints" data-dod="Monitores por journey Tier 0/1|Ubicaciones alineadas con usuarios|Ventanas de mantenimiento y owner"><small>Núcleo</small><strong>Synthetic Monitoring</strong><span>Pruebas HTTP y journeys críticos 24x7.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="application" data-label="Aplicación" data-title="Servicios y trazas distribuidas" data-summary="RED por servicio y endpoint con propagación end-to-end y salto a código, dependencias y logs." data-signals="Rate, errors, duration p50/p95/p99|Traces y spans correlacionados|Excepciones y dependencias" data-dod="Servicio, namespace, versión y entorno|Propagación entre límites técnicos|Topología y owner verificados"><small>Núcleo</small><strong>Servicios y trazas</strong><span>Flujo causal desde el frontend a las dependencias.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="application" data-label="Aplicación" data-title="APIs, serverless y mensajería" data-summary="Salud de endpoints, funciones, topics, colas y consumidores con contexto asíncrono." data-signals="Latencia y errores por endpoint|Invocaciones, throttling y cold starts|Lag, profundidad y edad del mensaje" data-dod="Contratos críticos inventariados|Contexto propagado en mensajes|Alertas por impacto, no por cada excepción"><small>Extensión</small><strong>APIs y asincronía</strong><span>Serverless, gateways, colas y eventos.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="application" data-label="Aplicación" data-title="Datos y dependencias" data-summary="Comportamiento de bases de datos, cachés, servicios externos y consultas costosas." data-signals="Tiempo y fallos de dependencia|Pool, conexiones y saturación|Consultas lentas y cache hit ratio" data-dod="Dependencias Tier 0/1 mapeadas|Credenciales mediante vault corporativo|Runbook de degradación y fallback"><small>Núcleo</small><strong>Datos y dependencias</strong><span>Bases de datos, cachés y terceros.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="platform" data-label="Plataforma" data-title="Kubernetes y contenedores" data-summary="Visión desde cluster y namespace hasta workload, pod, proceso y servicio." data-signals="CPU, memoria, red, PVC y reinicios|Estado de workloads y eventos K8s|Topología y trazas de aplicación" data-dod="Operator gestionado como código|Metadata enrichment activado|Cobertura por cluster y namespace"><small>Núcleo</small><strong>Kubernetes</strong><span>Plataforma, workload y full-stack seleccionable.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="platform" data-label="Plataforma" data-title="Hosts, procesos y red" data-summary="USE en recursos físicos, virtuales y sistemas operativos con procesos críticos." data-signals="Utilización, saturación y errores|Disponibilidad de procesos y servicios OS|Tráfico y conectividad" data-dod="Modo OneAgent decidido por grupo|Host groups y network zones|Exclusiones y mantenimiento documentados"><small>Núcleo</small><strong>Infraestructura</strong><span>Hosts, procesos, servicios OS y red.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="platform" data-label="Plataforma" data-title="Cloud y PaaS" data-summary="Servicios gestionados de AWS, Azure o GCP unidos a workloads, aplicaciones y costes." data-signals="Métricas y logs del proveedor|Cuotas, errores y throttling|Relaciones cloud y cambios" data-dod="Cuentas y suscripciones inventariadas|Permisos mínimos y rotación|Etiquetas de producto y centro de coste"><small>Extensión</small><strong>Cloud y PaaS</strong><span>Servicios gestionados, funciones y cuotas.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="operations" data-label="Operación" data-title="Logs, métricas y eventos" data-summary="Datos estructurados, correlacionables y gobernados por valor, sensibilidad, retención y coste." data-signals="Freshness y volumen de ingestión|Errores por servicio y trace.id|Métricas derivadas y eventos de negocio" data-dod="OpenPipeline normaliza y enmascara|Buckets, retención y permisos definidos|Campos de alta cardinalidad controlados"><small>Núcleo</small><strong>Datos de observabilidad</strong><span>Calidad, correlación, retención y coste.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="operations" data-label="Operación" data-title="Application Security" data-summary="Vulnerabilidades y protección en runtime priorizadas con contexto de ejecución y exposición." data-signals="Vulnerabilidades en uso|Riesgo, exposición e impacto|Ataques detectados o bloqueados" data-dod="Capacidad licenciada y modo compatible|Ownership de seguridad definido|Integración con proceso de remediación"><small>Opcional</small><strong>Seguridad en runtime</strong><span>RVA, RAP y postura según alcance contratado.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="operations" data-label="Operación" data-title="Negocio y entrega" data-summary="Eventos de negocio, despliegues y pipelines para correlacionar cambio, rendimiento y resultado." data-signals="Conversión, volumen y valor|Deployment y release markers|Duración y fallo de pipelines" data-dod="Diccionario de eventos aprobado|Sin datos personales innecesarios|Vínculo entre versión, cambio y servicio"><small>Extensión</small><strong>Negocio y SDLC</strong><span>Resultados, releases y calidad de entrega.</span></button>
+            <button class="coverage-card" type="button" aria-pressed="false" data-area="operations" data-label="Operación" data-title="Salud de la propia plataforma" data-summary="Monitorización de agentes, ActiveGates, ingestión, pipelines, consultas, consumo y automatizaciones." data-signals="Cobertura y antigüedad de agentes|Datos descartados o retrasados|Consumo, fallos de workflows y API" data-dod="Dashboard de salud operativo|Alertas con owner del equipo plataforma|Prueba trimestral de continuidad"><small>Núcleo</small><strong>Meta-monitorización</strong><span>La plataforma de observabilidad también se opera.</span></button>
+          </div>
+
+          <aside class="coverage-detail reveal" id="coverage-detail" aria-live="polite">
+            <span class="coverage-detail-label">Experiencia</span>
+            <h3>Real User Monitoring</h3>
+            <p>Experiencia real por aplicación, journey, región, dispositivo y versión.</p>
+            <h4>Señales mínimas</h4>
+            <ul data-detail="signals"><li>Apdex o Core Web Vitals</li><li>Errores JavaScript y acciones fallidas</li><li>Usuarios, sesiones y conversión</li></ul>
+            <h4>Criterio de aceptación</h4>
+            <ul data-detail="dod"><li>Journey crítico identificado</li><li>Propiedades sin PII validadas</li><li>Dashboard de producto y SLO de experiencia</li></ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="capacidades-monitorizacion">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Profundidad técnica</span>
+            <h2>Capacidades de monitorización e ingesta.</h2>
+          </div>
+          <p class="section-intro">Qué aporta Dynatrace, qué tecnologías cubre y qué decisiones debe convertir el framework en estándares verificables. Los datos marcados como actuales se deben contrastar con la matriz de soporte y la versión del tenant antes de cada despliegue.</p>
+        </header>
+
+        <nav class="capability-index reveal" aria-label="Índice de capacidades de monitorización">
+          <a href="#deep-monitoring"><span>CAPACIDAD 01</span><strong>Deep monitoring de procesos</strong></a>
+          <a href="#business-events"><span>CAPACIDAD 02</span><strong>Business Events</strong></a>
+          <a href="#log-monitoring"><span>CAPACIDAD 03</span><strong>Log Monitoring</strong></a>
+          <a href="#ingesta-dynatrace"><span>CAPACIDAD 04</span><strong>Ingesta en Dynatrace</strong></a>
+        </nav>
+
+        <article class="monitoring-capability reveal" id="deep-monitoring">
+          <div class="capability-heading">
+            <div><span class="capability-number">01 / PROCESOS</span><h3>Deep monitoring con OneAgent</h3></div>
+            <p class="capability-lead">En modo Full-Stack, OneAgent descubre procesos e inyecta módulos de código compatibles para observar peticiones, servicios, errores y dependencias hasta nivel de método. El resultado une código, proceso, host, contenedor, Kubernetes, red y logs en una misma topología causal.</p>
+          </div>
+
+          <div class="fact-grid">
+            <div class="fact-block"><span class="status-tag">Confirmado</span><strong>Visibilidad automática</strong><p>Detección de servicios y endpoints, trazas distribuidas, llamadas salientes, acceso a bases de datos y mensajería, excepciones, métricas de runtime y contexto de proceso.</p></div>
+            <div class="fact-block"><span class="status-tag">Confirmado</span><strong>Diagnóstico de código</strong><p>Hotspots de métodos, consumo de CPU, memoria y asignaciones, análisis de bloqueos o dumps en tecnologías compatibles, además de profiling continuo según runtime.</p></div>
+            <div class="fact-block"><span class="status-tag">Dependencia</span><strong>Modo y reinicio</strong><p>La profundidad de código requiere Full-Stack. El módulo se inyecta al arrancar el proceso; un cambio de modo, regla o módulo puede exigir reiniciar los procesos monitorizados.</p></div>
+          </div>
+
+          <h4 class="capability-subhead">Tecnologías con módulos de deep monitoring</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Familias tecnológicas soportadas por OneAgent para deep monitoring</caption>
+              <thead><tr><th>Familia</th><th>Tecnologías y ejemplos</th><th>Profundidad que se debe validar</th><th>Condiciones</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Runtimes gestionados</strong></td><td>Java; .NET, .NET Core y .NET Framework; Node.js; Python; PHP; Go.</td><td>Servicios, solicitudes, errores, llamadas remotas, bases de datos, mensajería y métricas de runtime. El profiling y la visibilidad de código varían por lenguaje.</td><td>Versión de runtime, framework, librería, sistema operativo, arquitectura y versión de OneAgent.</td></tr>
+                <tr><td><strong>Servidores web y proxy</strong></td><td>Apache HTTP Server e IBM HTTP Server; NGINX; Microsoft IIS.</td><td>Tráfico web, tiempos, errores, frontends web y salto hacia servicios de aplicación compatibles.</td><td>El módulo y las funciones disponibles dependen de versión, plataforma y modo de despliegue.</td></tr>
+                <tr><td><strong>Frameworks web</strong></td><td>Ejemplos documentados: Tomcat, Jetty, JBoss/WildFly, WebSphere Liberty, WebLogic, Undertow, GlassFish y Netty; ASP.NET Core, Kestrel e IIS; Express, Fastify, Koa y Nest.</td><td>Endpoints, transacciones, contexto distribuido, errores y código ejecutado en el framework.</td><td>Los ejemplos no sustituyen la matriz exacta de versiones y limitaciones.</td></tr>
+                <tr><td><strong>Datos y mensajería</strong></td><td>Drivers y librerías compatibles para SQL, NoSQL y Redis; JDBC y ADO.NET; Kafka, JMS, RabbitMQ, IBM MQ y colas cloud, según runtime.</td><td>Llamadas, latencia, fallos, sentencias o destino remoto y propagación entre productor y consumidor cuando esté soportada.</td><td>La cobertura depende de la combinación concreta de cliente, versión y tecnología de aplicación.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="capability-note"><strong>Lectura correcta de la cobertura:</strong> que un lenguaje tenga soporte OneAgent no implica paridad funcional con otro. Por ejemplo, Dynatrace documenta limitaciones de visibilidad de código y de propagación automática entre hilos worker para Node.js. La matriz oficial es la fuente de verdad; para huecos se puede complementar con OpenTelemetry o OneAgent SDK.</p>
+
+          <h4 class="capability-subhead">Estándar de implantación propuesto</h4>
+          <div class="implementation-flow" aria-label="Flujo para implantar deep monitoring">
+            <div><span>01</span><strong>Clasificar</strong><small>Tier, runtime, versión, OS, arquitectura y owner.</small></div>
+            <div><span>02</span><strong>Comprobar</strong><small>Matriz de soporte, modo OneAgent y restricciones.</small></div>
+            <div><span>03</span><strong>Diseñar</strong><small>Reglas de inyección, exclusiones, privacidad y ventana.</small></div>
+            <div><span>04</span><strong>Validar</strong><small>Trace de prueba, errores, dependencias, logs y overhead.</small></div>
+            <div><span>05</span><strong>Aceptar</strong><small>Owner, dashboard, SLO, alertas, runbook y evidencia.</small></div>
+          </div>
+          <p class="capability-note"><strong>Criterio de aceptación:</strong> un proceso crítico no se considera cubierto solo porque aparezca como entidad. Debe existir una petición trazada de extremo a extremo, servicio y dependencias reconocidos, errores útiles, contexto hacia logs, consumo medido y una decisión explícita sobre datos sensibles.</p>
+
+          <aside class="official-docs" aria-label="Documentación oficial de deep monitoring">
+            <h4>Documentación oficial</h4>
+            <ul>
+              <li><a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes" target="_blank" rel="noreferrer">Modos de monitorización OneAgent</a><small>Full-Stack, Infrastructure y Discovery.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support" target="_blank" rel="noreferrer">Technology support</a><small>Matriz vigente por tecnología y versión.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix" target="_blank" rel="noreferrer">Matriz de plataforma y capacidades</a><small>Lenguajes, web servers, OS y modos.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/platform/oneagent/supported-monitoring-types" target="_blank" rel="noreferrer">Capacidades de OneAgent</a><small>Procesos, aplicaciones, infraestructura y logs.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/observe/applications-and-microservices/use-cases/always-on-app-profiling" target="_blank" rel="noreferrer">Always-on profiling</a><small>CPU, memoria y hotspots.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-tracing/oneagent-sdk" target="_blank" rel="noreferrer">OneAgent SDK</a><small>Extensión manual de trazas no cubiertas.</small></li>
+            </ul>
+          </aside>
+        </article>
+
+        <article class="monitoring-capability reveal" id="business-events">
+          <div class="capability-heading">
+            <div><span class="capability-number">02 / NEGOCIO</span><h3>Business Events</h3></div>
+            <p class="capability-lead">Business Events convierte resultados de negocio como pedidos, pagos, altas, fraude o entregas en datos precisos y consultables en Grail. Se pueden capturar dentro del flujo de aplicación o ingerir desde RUM, logs, spans, APIs y Workflows para relacionar comportamiento técnico con volumen, conversión y valor.</p>
+          </div>
+
+          <div class="fact-grid">
+            <div class="fact-block"><span class="status-tag">Confirmado</span><strong>Dato de grado empresarial</strong><p>Dynatrace describe los Business Events como datos precisos y completos, sin muestreo, procesados en tiempo real y enriquecidos con contexto cuando la fuente lo permite.</p></div>
+            <div class="fact-block"><span class="status-tag">Esquema mínimo</span><strong>Identidad del evento</strong><p><code>event.provider</code> y <code>event.type</code> son obligatorios. El framework añade timestamp, dominio, producto, resultado, importe o unidad, versión, owner y contexto de seguridad.</p></div>
+            <div class="fact-block"><span class="status-tag">Gobierno</span><strong>Precisión con coste y privacidad</strong><p>Al no depender de muestreo, el volumen debe presupuestarse. Se capturan solo atributos necesarios, se bloquean secretos y PII, y se define bucket, retención y permisos.</p></div>
+          </div>
+
+          <h4 class="capability-subhead">Fuentes y tecnologías soportadas</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Fuentes y tecnologías soportadas para Business Events</caption>
+              <thead><tr><th>Ruta de captura</th><th>Tecnologías soportadas</th><th>Uso recomendado</th><th>Condición relevante</th></tr></thead>
+              <tbody>
+                <tr><td><strong>OneAgent, HTTP entrante</strong></td><td>Apache, NGINX e IIS; .NET; Java Servlet en Tomcat, Jetty, JBoss/WildFly, WebSphere Liberty, WebLogic, Undertow, GlassFish y Netty; Node.js; Go.</td><td>Extraer campos de headers, query string, path o payload dentro de peticiones ya monitorizadas.</td><td>Full-Stack, función habilitada, regla de captura y reinicio del proceso. Las versiones mínimas varían por tecnología.</td></tr>
+                <tr><td><strong>OneAgent, HTTP saliente</strong></td><td>Actualmente Java con Apache HttpClient 4.x y OkHttp 3.4 o posterior.</td><td>Capturar eventos contenidos en llamadas salientes cuando el punto de extracción está en el cliente.</td><td>No asumir equivalencia con HTTP entrante ni con el resto de lenguajes.</td></tr>
+                <tr><td><strong>Web y móvil</strong></td><td>RUM JavaScript API, Mobile OneAgent y OpenKit.</td><td>Conversión, abandono, acciones de usuario y resultados digitales con contexto de sesión.</td><td>Consentimiento, identidad y campos personales deben diseñarse antes de activar.</td></tr>
+                <tr><td><strong>OpenPipeline</strong></td><td>Extracción desde logs y spans ya ingeridos, independientemente del lenguaje que los produjo.</td><td>Reutilizar JSON o atributos existentes, normalizar, enriquecer, enrutar y derivar métricas.</td><td>Evitar duplicar el mismo evento entre regla OneAgent y pipeline.</td></tr>
+                <tr><td><strong>API y automatización</strong></td><td>Business Events API para JSON, CloudEvents o lotes; acción de ingesta desde Workflows.</td><td>ERP, core bancario, SaaS, batch, mainframe o fuentes externas sin instrumentación directa.</td><td>Autenticación, límites de payload, reintentos ante 429, idempotencia y reloj de origen.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="capability-note"><strong>Advertencia tecnológica importante:</strong> Python y PHP tienen soporte de deep monitoring, pero no figuran en la tabla oficial actual de captura directa de Business Events sobre HTTP entrante con OneAgent. Para esos casos, el diseño debe usar logs o spans procesados por OpenPipeline, RUM, OpenKit o la API, salvo que la matriz oficial cambie.</p>
+
+          <h4 class="capability-subhead">Contrato del evento y pasos del proyecto</h4>
+          <div class="implementation-flow" aria-label="Flujo para implantar Business Events">
+            <div><span>01</span><strong>Pregunta</strong><small>Decisión de negocio, KPI, granularidad y owner.</small></div>
+            <div><span>02</span><strong>Contrato</strong><small>Provider, type, timestamp, ID, resultado y dimensiones.</small></div>
+            <div><span>03</span><strong>Captura</strong><small>Elegir OneAgent, RUM, logs, spans, API o Workflow.</small></div>
+            <div><span>04</span><strong>Gobierno</strong><small>PII, deduplicación, acceso, bucket, retención y coste.</small></div>
+            <div><span>05</span><strong>Consumo</strong><small>DQL, dashboard, métrica, alerta, reconciliación y SLO.</small></div>
+          </div>
+          <p class="capability-note"><strong>Criterio de aceptación:</strong> volumen y valor se reconcilian con la fuente de negocio dentro de una tolerancia acordada; no aparecen secretos ni PII no autorizada; el evento no se duplica; tiene owner, contexto de seguridad, retención y consulta DQL versionada.</p>
+
+          <aside class="official-docs" aria-label="Documentación oficial de Business Events">
+            <h4>Documentación oficial</h4>
+            <ul>
+              <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-basic-concepts" target="_blank" rel="noreferrer">Conceptos básicos</a><small>Modelo, precisión, campos y Grail.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing" target="_blank" rel="noreferrer">Opciones de captura</a><small>OneAgent, RUM, API, logs, spans y Workflows.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-oneagent" target="_blank" rel="noreferrer">Captura con OneAgent</a><small>Tecnologías, versiones y reglas.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-processing-openpipeline" target="_blank" rel="noreferrer">Procesamiento en OpenPipeline</a><small>Extracción, transformación y routing.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources" target="_blank" rel="noreferrer">Ingesta desde fuentes externas</a><small>API, JSON, CloudEvents y lotes.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data" target="_blank" rel="noreferrer">Buckets y retención</a><small>Organización, permisos y periodo de datos.</small></li>
+            </ul>
+          </aside>
+        </article>
+
+        <article class="monitoring-capability reveal" id="log-monitoring">
+          <div class="capability-heading">
+            <div><span class="capability-number">03 / LOGS</span><h3>Log Monitoring</h3></div>
+            <p class="capability-lead">Log Monitoring ingiere logs de hosts, procesos, contenedores, Kubernetes, cloud y fuentes externas; los contextualiza con topología, trazas y metadatos; y los procesa en OpenPipeline para parsear, enmascarar, filtrar, enriquecer, enrutar y convertir información relevante en métricas, eventos Davis o Business Events.</p>
+          </div>
+
+          <div class="fact-grid">
+            <div class="fact-block"><span class="status-tag">Recomendado</span><strong>OneAgent cerca de la fuente</strong><p>Descubrimiento automático, enriquecimiento con entidad y Kubernetes, severidad y contexto de trace cuando está disponible, además de enmascarado antes de que el dato abandone el entorno.</p></div>
+            <div class="fact-block"><span class="status-tag">Alternativas</span><strong>Rutas abiertas e indirectas</strong><p>Logs API, Syslog mediante ActiveGate, OTLP, Dynatrace OpenTelemetry Collector, Fluent Bit, Fluentd, Logstash, integraciones cloud, extensiones y plataformas como Cribl.</p></div>
+            <div class="fact-block"><span class="status-tag">Operación</span><strong>De texto a señal gobernada</strong><p>DQL sobre Grail, correlación con entidad y trace, dashboards y notebooks, extracción de métricas y eventos, retención por buckets y controles de acceso.</p></div>
+          </div>
+
+          <h4 class="capability-subhead">Fuentes y formatos</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Fuentes y formatos para Log Monitoring</caption>
+              <thead><tr><th>Origen</th><th>Captura soportada</th><th>Formatos o tecnologías</th><th>Diseño del framework</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Sistema operativo y proceso</strong></td><td>OneAgent descubre archivos abiertos por procesos y fuentes del sistema.</td><td>Windows Security, Application y System; Linux syslog y messages; AIX; journald; IIS; z/OS; texto UTF-8 o UTF-16, JSON y Windows Event Log.</td><td>Reglas explícitas de inclusión y exclusión, multiline, timestamp, zona horaria y severidad.</td></tr>
+                <tr><td><strong>Contenedores y Kubernetes</strong></td><td>OneAgent u otros recolectores compatibles.</td><td>Kubernetes, OpenShift y Docker; Fluent Bit, Fluentd, Logstash y Dynatrace OTel Collector.</td><td>Enriquecer con cluster, namespace, workload, pod, container, servicio y owner.</td></tr>
+                <tr><td><strong>Cloud</strong></td><td>Integraciones nativas y servicios de envío del proveedor.</td><td>AWS Data Firehose, S3, Lambda y CloudWatch; Azure Event Hubs y Azure Native; Google Cloud Pub/Sub; Cloudflare Logpush.</td><td>Separar cuentas, regiones, productos y centros de coste; controlar retraso y duplicados.</td></tr>
+                <tr><td><strong>Red, appliances y legado</strong></td><td>Syslog mediante ActiveGate, Extensions o API.</td><td>Dispositivos de red, seguridad, middleware, mainframe y aplicaciones sin agente.</td><td>Alta disponibilidad del punto de entrada, buffering, reloj, TLS y autenticación.</td></tr>
+                <tr><td><strong>Aplicaciones externas</strong></td><td>Logs API, OTLP o plataforma de gestión de logs.</td><td>JSON estructurado preferente; lotes desde colectores o brokers.</td><td>Contrato de esquema, idempotencia, retry con backoff y observación de aceptados, rechazados y descartados.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="capability-subhead">Límites operativos que condicionan el diseño</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Límites actuales relevantes de Log Monitoring</caption>
+              <thead><tr><th>Control</th><th>Valor documentado actual</th><th>Implicación</th></tr></thead>
+              <tbody>
+                <tr><td>Contenido de un log</td><td>Hasta 10 MB.</td><td>Truncar o fragmentar de forma consciente; no usar un evento como transporte de ficheros.</td></tr>
+                <tr><td>Atributos</td><td>Clave hasta 100 bytes, valor hasta 32 KB y hasta 500 atributos.</td><td>Contrato acotado, sin explosión de campos ni payloads completos como atributo.</td></tr>
+                <tr><td>Petición Log API</td><td>Hasta 10 MB y 50.000 registros por petición.</td><td>Batch por tamaño y registros, compresión cuando aplique y retry controlado.</td></tr>
+                <tr><td>Antigüedad al ingerir</td><td>Máximo 24 horas.</td><td>Monitorizar backlog y freshness; una caída prolongada necesita recuperación diseñada.</td></tr>
+                <tr><td>OneAgent por process group instance</td><td>200 fuentes de log por defecto.</td><td>Inventariar rotaciones y patrones; solicitar ajuste solo con prueba de capacidad.</td></tr>
+                <tr><td>Procesamiento OneAgent</td><td>500 MB por minuto por defecto; ampliable en escenarios concretos con soporte.</td><td>Probar picos, aplicar filtros en origen y alertar sobre throttling o descarte.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="capability-note"><strong>Valores de referencia, no garantía contractual:</strong> son límites publicados en la documentación consultada el 23 de agosto de 2026. Pueden depender de la versión y configuración; se deben verificar en el tenant y con Dynatrace Support para cargas elevadas.</p>
+
+          <h4 class="capability-subhead">Pipeline y criterio de aceptación</h4>
+          <div class="implementation-flow" aria-label="Flujo para implantar Log Monitoring">
+            <div><span>01</span><strong>Capturar</strong><small>Origen, formato, frecuencia, volumen y ruta.</small></div>
+            <div><span>02</span><strong>Proteger</strong><small>Enmascarar secretos y PII lo más cerca posible.</small></div>
+            <div><span>03</span><strong>Normalizar</strong><small>Timestamp, severity, service, trace, env y owner.</small></div>
+            <div><span>04</span><strong>Enrutar</strong><small>Bucket, retención, permisos y coste por producto.</small></div>
+            <div><span>05</span><strong>Explotar</strong><small>DQL, alerta, métrica, evento y runbook.</small></div>
+          </div>
+          <p class="capability-note"><strong>Criterio de aceptación:</strong> una línea de prueba llega dentro del objetivo de freshness, con timestamp y severidad correctos, entidad y trace correlacionados cuando existan, campos sensibles enmascarados, bucket y permisos verificados, consulta DQL útil y alarma de fallo de ingestión.</p>
+
+          <aside class="official-docs" aria-label="Documentación oficial de Log Monitoring">
+            <h4>Documentación oficial</h4>
+            <ul>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion" target="_blank" rel="noreferrer">Opciones de ingesta de logs</a><small>OneAgent, API, Syslog, Kubernetes, OTLP y cloud.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa" target="_blank" rel="noreferrer">Ingesta mediante OneAgent</a><small>Descubrimiento y enriquecimiento.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery" target="_blank" rel="noreferrer">Autodiscovery</a><small>Fuentes de host, proceso y contenedor.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-openpipeline" target="_blank" rel="noreferrer">OpenPipeline para logs</a><small>Procesamiento, routing y extracción.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/methods-of-masking-sensitive-data" target="_blank" rel="noreferrer">Enmascarado de datos</a><small>Protección en captura y en ingesta.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits" target="_blank" rel="noreferrer">Límites de Log Monitoring</a><small>Tamaños, atributos, fuentes y throughput.</small></li>
+            </ul>
+          </aside>
+        </article>
+
+        <article class="monitoring-capability reveal" id="ingesta-dynatrace">
+          <div class="capability-heading">
+            <div><span class="capability-number">04 / INGESTA</span><h3>Capacidad de ingesta de Dynatrace</h3></div>
+            <p class="capability-lead">Dynatrace admite un modelo híbrido: captura automática con OneAgent, señales estándar por OTLP, integraciones cloud, Extensions 2.0, RUM y OpenKit, y endpoints de API para cada tipo de dato. OpenPipeline procesa y enruta la entrada antes de almacenarla en Grail para análisis, automatización y respuesta.</p>
+          </div>
+
+          <div class="fact-grid">
+            <div class="fact-block"><span class="status-tag">Cobertura</span><strong>Entornos</strong><p>Servidores y máquinas virtuales Linux, Windows, AIX, Solaris y z/OS; Kubernetes y contenedores; PaaS y serverless; servicios gestionados de AWS, Azure y Google Cloud.</p></div>
+            <div class="fact-block"><span class="status-tag">Señales</span><strong>Tipos de dato</strong><p>Métricas, logs, spans y trazas, eventos genéricos y Davis, Business Events, topología, seguridad, SDLC, sesiones y eventos de usuario.</p></div>
+            <div class="fact-block"><span class="status-tag">Plataforma</span><strong>Tratamiento</strong><p>OpenPipeline permite parsing, transformación, enriquecimiento, enmascarado, filtrado, routing, extracción de nuevas señales y asignación de coste antes de persistir en Grail.</p></div>
+          </div>
+
+          <h4 class="capability-subhead">Catálogo de rutas de ingesta</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Rutas de ingesta disponibles en Dynatrace</caption>
+              <thead><tr><th>Ruta</th><th>Señales principales</th><th>Cuándo elegirla</th><th>Controles obligatorios</th></tr></thead>
+              <tbody>
+                <tr><td><strong>OneAgent y Dynatrace Operator</strong></td><td>Métricas, logs, trazas, servicios, procesos, topología, eventos y Business Events compatibles.</td><td>Hosts o clusters administrados donde se busca descubrimiento automático y máxima profundidad.</td><td>Modo, rollout, network zone, versiones, reglas de inyección, recursos y privacidad.</td></tr>
+                <tr><td><strong>OpenTelemetry y OTLP</strong></td><td>Métricas, logs y trazas.</td><td>Instrumentación estándar, serverless, software de terceros, librerías ya instrumentadas o escenarios sin agente.</td><td>Semantic Conventions, resource attributes, sampling, TLS, autenticación y métricas de éxito de exportación.</td></tr>
+                <tr><td><strong>Integraciones cloud</strong></td><td>Métricas, logs, eventos y metadatos de servicios gestionados.</td><td>AWS, Azure y Google Cloud, complementando la telemetría dentro de workloads.</td><td>Permiso mínimo, cuentas y regiones, cuotas, retraso, tags, duplicidad y coste.</td></tr>
+                <tr><td><strong>Extensions 2.0</strong></td><td>Métricas, eventos, logs y topología.</td><td>SNMP, WMI, Prometheus, SQL, JMX, Python y extensiones personalizadas para tecnologías externas.</td><td>ActiveGate, credenciales seguras, frecuencia, cardinalidad, HA y ciclo de versión.</td></tr>
+                <tr><td><strong>APIs y endpoints OpenPipeline</strong></td><td>Logs, métricas, Business Events, eventos genéricos o Davis, SDLC, seguridad y topología.</td><td>Fuentes externas, batch, integración empresarial y datos que ya tienen un contrato propio.</td><td>OAuth o token, payload, lote, compresión, idempotencia, reloj, backoff y observabilidad del cliente.</td></tr>
+                <tr><td><strong>RUM, Mobile OneAgent y OpenKit</strong></td><td>Sesiones, eventos de usuario, rendimiento digital y Business Events.</td><td>Web, móvil, dispositivos y experiencias donde la aplicación es el punto de observación.</td><td>Consentimiento, privacidad, sampling, user tagging, versiones y correlación de backend.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="capability-subhead">Límites de payload y respuesta del servicio</h4>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">Límites de payload por endpoint de ingesta</caption>
+              <thead><tr><th>Endpoint o señal</th><th>Límite documentado actual</th><th>Patrón de cliente</th></tr></thead>
+              <tbody>
+                <tr><td>API, valor predeterminado general</td><td>1 MB por payload.</td><td>No diseñar al límite; batch por bytes y número de registros.</td></tr>
+                <tr><td>Logs API</td><td>10 MB.</td><td>Comprimir si el endpoint lo admite y respetar además el máximo de registros.</td></tr>
+                <tr><td>OTLP traces</td><td>8 MB.</td><td>Controlar batch del exporter y sampling en origen.</td></tr>
+                <tr><td>OTLP metrics</td><td>4 MB.</td><td>Limitar cardinalidad y frecuencia antes de exportar.</td></tr>
+                <tr><td>OTLP logs</td><td>2 MB.</td><td>Filtrar, estructurar y dividir lotes antes del envío.</td></tr>
+                <tr><td>Business Events API</td><td>Específico del endpoint y versión.</td><td>Validar la referencia activa del tenant y manejar de forma explícita 413 y 429.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="capability-note"><strong>Capacidad no equivale a ilimitado:</strong> un endpoint puede aceptar un tipo de señal y aun así rechazar payloads, saturar colas o aplicar límites. El framework debe tratar 413 y 429, usar exponential backoff con jitter, vigilar aceptados, rechazados, descartados y persistidos, y reconciliar el volumen enviado con el almacenado.</p>
+
+          <h4 class="capability-subhead">Patrón de arquitectura y Definition of Done</h4>
+          <div class="implementation-flow" aria-label="Flujo para diseñar una ruta de ingesta">
+            <div><span>01</span><strong>Fuente</strong><small>Entorno, señal, owner, criticidad y sensibilidad.</small></div>
+            <div><span>02</span><strong>Transporte</strong><small>Agente, Collector, ActiveGate, extensión, cloud o API.</small></div>
+            <div><span>03</span><strong>Proceso</strong><small>Validar, filtrar, enmascarar, enriquecer y enrutar.</small></div>
+            <div><span>04</span><strong>Persistencia</strong><small>Bucket, retención, permisos, coste y cardinalidad.</small></div>
+            <div><span>05</span><strong>Control</strong><small>Freshness, pérdida, rechazo, latencia, consumo y prueba de fallo.</small></div>
+          </div>
+          <p class="capability-note"><strong>Criterio de aceptación:</strong> la ruta tiene diagrama, contrato de datos y propietario; cifra y autentica el tránsito; resiste el pico acordado; recupera o descarta de forma conocida; enmascara antes de persistir; aporta contexto mínimo; muestra salud y consumo; y dispone de runbook y prueba de continuidad.</p>
+
+          <aside class="official-docs" aria-label="Documentación oficial de ingesta en Dynatrace">
+            <h4>Documentación oficial</h4>
+            <ul>
+              <li><a href="https://docs.dynatrace.com/docs/deploy-dynatrace/oneagent/installation/how-do-i-install-dynatrace-oneagent" target="_blank" rel="noreferrer">Ingestar datos en Dynatrace</a><small>Selección por entorno y tecnología.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference" target="_blank" rel="noreferrer">Referencia de fuentes de ingesta</a><small>Endpoints por tipo de dato.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry" target="_blank" rel="noreferrer">OpenTelemetry y Dynatrace</a><small>OTLP para métricas, logs y trazas.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate" target="_blank" rel="noreferrer">Configurar ActiveGate</a><small>Routing, buffering y endpoints OTLP.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources" target="_blank" rel="noreferrer">Fuentes de Extensions</a><small>SQL, WMI, Prometheus, SNMP y Python.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit" target="_blank" rel="noreferrer">Límites de acceso API</a><small>Payloads, pools y respuesta 429.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting" target="_blank" rel="noreferrer">Troubleshooting OTLP</a><small>Aceptados, rechazados, descartados y persistidos.</small></li>
+              <li><a href="https://docs.dynatrace.com/docs/license/capabilities" target="_blank" rel="noreferrer">Capacidades y consumo DPS</a><small>Dimensiones de consumo por capacidad.</small></li>
+            </ul>
+          </aside>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="ciclo">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Ciclo operativo</span>
+            <h2>Un sistema continuo, no una implantación puntual.</h2>
+          </div>
+          <p class="section-intro">Cada capacidad debe cerrar el bucle entre diseño, señal, decisión y aprendizaje.</p>
+        </header>
+        <div class="loop-layout reveal">
+          <div class="loop-list" role="tablist" aria-label="Ciclo del framework">
+            <button class="loop-button" type="button" role="tab" aria-selected="true" data-loop="design"><span>01</span><span><strong>Diseñar</strong><small>Journey, servicio, riesgo y SLO</small></span></button>
+            <button class="loop-button" type="button" role="tab" aria-selected="false" data-loop="instrument"><span>02</span><span><strong>Instrumentar</strong><small>Señales y semántica mínima</small></span></button>
+            <button class="loop-button" type="button" role="tab" aria-selected="false" data-loop="observe"><span>03</span><span><strong>Observar</strong><small>Vistas por audiencia y contexto</small></span></button>
+            <button class="loop-button" type="button" role="tab" aria-selected="false" data-loop="detect"><span>04</span><span><strong>Detectar</strong><small>SLO, anomalías y problemas</small></span></button>
+            <button class="loop-button" type="button" role="tab" aria-selected="false" data-loop="respond"><span>05</span><span><strong>Responder</strong><small>Ownership, workflow y runbook</small></span></button>
+            <button class="loop-button" type="button" role="tab" aria-selected="false" data-loop="learn"><span>06</span><span><strong>Aprender</strong><small>Postmortem, coste y mejora</small></span></button>
+          </div>
+          <article class="loop-detail" id="loop-detail" role="tabpanel" aria-live="polite">
+            <span class="eyebrow">Paso 01</span>
+            <h3>Diseñar desde el resultado</h3>
+            <p>Define qué experiencia o capacidad debe protegerse, quién la posee y qué nivel de fiabilidad necesita antes de elegir señales.</p>
+            <div class="loop-detail-grid">
+              <div><strong>Entrada</strong><p>Journey, criticidad, arquitectura, riesgo y expectativas.</p></div>
+              <div><strong>Artefacto</strong><p>Ficha de servicio con SLI/SLO propuesto y mapa de dependencias.</p></div>
+              <div><strong>Control</strong><p>Aprobación conjunta de negocio, producto, SRE y seguridad.</p></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="slo">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Fiabilidad medible</span>
+            <h2>El SLO traduce la experiencia en una decisión operativa.</h2>
+          </div>
+          <p class="section-intro">Los valores son un punto de partida. El objetivo definitivo debe negociar valor de negocio, coste, riesgo y dependencia.</p>
+        </header>
+
+        <div class="slo-grid">
+          <div class="reveal">
+            <h3>Contrato mínimo por servicio</h3>
+            <p>Un SLO válido identifica población, evento bueno, total, ventana, objetivo, owner y política de error budget. En Dynatrace, el SLI puede expresarse con DQL y utilizar su burn rate para alertar.</p>
+            <div class="formula"><strong>SLI</strong> = eventos buenos / eventos válidos × 100<br><strong>Error budget</strong> = 100% − objetivo SLO<br><strong>Burn rate</strong> = tasa de consumo relativa del presupuesto</div>
+            <p class="source-inline"><a href="https://docs.dynatrace.com/docs/deliver/service-level-objectives" target="_blank" rel="noreferrer">SLO y burn rate en Dynatrace</a> · <a href="https://sre.google/workbook/alerting-on-slos/" target="_blank" rel="noreferrer">Alerting on SLOs, Google SRE</a></p>
+          </div>
+
+          <form class="calculator reveal" id="slo-calculator">
+            <h3>Calculadora de error budget</h3>
+            <p>Modifica los parámetros para dimensionar el margen permitido.</p>
+            <div class="field-grid">
+              <label>Criticidad
+                <select id="criticality" name="criticality" autocomplete="off">
+                  <option value="99.95">Tier 0 · misión crítica</option>
+                  <option value="99.9" selected>Tier 1 · crítico</option>
+                  <option value="99.5">Tier 2 · importante</option>
+                  <option value="99">Tier 3 · soporte</option>
+                </select>
+              </label>
+              <label>Objetivo SLO (%)
+                <input id="slo-target" name="slo-target" type="number" min="90" max="99.999" step="0.001" value="99.9" inputmode="decimal" autocomplete="off">
+              </label>
+              <label>Ventana (días)
+                <input id="slo-window" name="slo-window" type="number" min="1" max="365" step="1" value="30" inputmode="numeric" autocomplete="off">
+              </label>
+              <label>Interacciones en la ventana
+                <input id="slo-volume" name="slo-volume" type="number" min="1" step="1000" value="1000000" inputmode="numeric" autocomplete="off">
+              </label>
+            </div>
+            <div class="calc-results" aria-live="polite">
+              <div class="calc-result"><span>Margen temporal</span><strong id="budget-minutes">43,2 min</strong><small>si el servicio estuviera totalmente caído</small></div>
+              <div class="calc-result"><span>Eventos fallidos permitidos</span><strong id="budget-events">1.000</strong><small>sobre el volumen indicado</small></div>
+              <div class="calc-result"><span>Presupuesto</span><strong id="budget-percent">0,100%</strong><small>de eventos no buenos</small></div>
+            </div>
+            <p class="calc-advice" id="calc-advice">Para Tier 1, combinar una alerta rápida de burn rate con otra lenta y usar ticket cuando no exista urgencia inmediata.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="estandares">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Estándar de telemetría</span>
+            <h2>Pocas señales comunes y contexto suficiente.</h2>
+          </div>
+          <p class="section-intro">RED protege servicios y journeys; USE explica recursos. Logs y trazas aportan el detalle necesario para diagnosticar.</p>
+        </header>
+        <div class="signal-grid reveal">
+          <article class="signal"><code>Contexto obligatorio</code><h3>Quién, qué, dónde y cuánto</h3><p><code>service.name</code>, namespace, versión, entorno, <code>dt.owner</code>, producto, centro de coste, región y sensibilidad. Adoptar convenciones OTel y el Semantic Dictionary de Dynatrace.</p></article>
+          <article class="signal"><code>RED / Rate</code><h3>Tráfico</h3><p>Solicitudes, transacciones, mensajes o sesiones por unidad de tiempo.</p></article>
+          <article class="signal"><code>RED / Errors</code><h3>Errores</h3><p>Ratio de fallos desde la perspectiva del consumidor, no solo excepciones.</p></article>
+          <article class="signal"><code>RED / Duration</code><h3>Latencia</h3><p>Distribución p50, p95 y p99, separada por endpoint o journey relevante.</p></article>
+          <article class="signal"><code>USE</code><h3>Saturación</h3><p>Utilización, colas, throttling, conexiones y errores de cada recurso.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="operacion">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Modelo operativo</span>
+            <h2>Ownership antes que notificación.</h2>
+          </div>
+          <p class="section-intro">El equipo de plataforma ofrece la capacidad. El equipo propietario decide el SLO, atiende el incidente y mejora su servicio.</p>
+        </header>
+
+        <div class="table-wrap reveal">
+          <table>
+            <thead><tr><th>Actividad</th><th>Sponsor</th><th>Plataforma observabilidad</th><th>Owner de servicio</th><th>SRE / Operaciones</th><th>Seguridad</th><th>FinOps</th></tr></thead>
+            <tbody>
+              <tr><td>Estrategia, alcance y financiación</td><td class="raci">A</td><td class="raci">R</td><td class="raci">C</td><td class="raci">C</td><td class="raci">C</td><td class="raci">C</td></tr>
+              <tr><td>Plataforma, IAM y pipelines</td><td class="raci">I</td><td class="raci">A/R</td><td class="raci">C</td><td class="raci">C</td><td class="raci">C</td><td class="raci">I</td></tr>
+              <tr><td>Instrumentación y calidad de datos</td><td class="raci">I</td><td class="raci">C</td><td class="raci">A/R</td><td class="raci">C</td><td class="raci">C</td><td class="raci">I</td></tr>
+              <tr><td>SLI, SLO y error budget</td><td class="raci">I</td><td class="raci">C</td><td class="raci">A</td><td class="raci">R</td><td class="raci">I</td><td class="raci">C</td></tr>
+              <tr><td>Alertas, routing y runbooks</td><td class="raci">I</td><td class="raci">C</td><td class="raci">A</td><td class="raci">R</td><td class="raci">C</td><td class="raci">I</td></tr>
+              <tr><td>Incidente y postmortem</td><td class="raci">I</td><td class="raci">C</td><td class="raci">R</td><td class="raci">A/R</td><td class="raci">C</td><td class="raci">I</td></tr>
+              <tr><td>Consumo, asignación y optimización</td><td class="raci">I</td><td class="raci">R</td><td class="raci">C</td><td class="raci">I</td><td class="raci">I</td><td class="raci">A/R</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend"><span><strong>R</strong> ejecuta</span><span><strong>A</strong> responde por el resultado</span><span><strong>C</strong> participa</span><span><strong>I</strong> informado</span></div>
+
+        <h3 style="margin-top: 3.5rem;">Cadena de respuesta estándar</h3>
+        <div class="route-flow reveal" aria-label="Flujo desde la señal hasta el aprendizaje">
+          <div class="route-step"><strong>Señal</strong><span>Impacto o desviación relevante</span></div>
+          <div class="route-step"><strong>Davis event</strong><span>Detección automática o DQL</span></div>
+          <div class="route-step"><strong>Problem</strong><span>Correlación y causa probable</span></div>
+          <div class="route-step"><strong>Ownership</strong><span><code>dt.owner</code> y criticidad</span></div>
+          <div class="route-step"><strong>Workflow</strong><span>Filtro, enriquecimiento y routing</span></div>
+          <div class="route-step"><strong>Respuesta</strong><span>On-call, ITSM y runbook</span></div>
+          <div class="route-step"><strong>Aprendizaje</strong><span>Postmortem y cambio como código</span></div>
+        </div>
+
+        <div class="table-wrap reveal" style="margin-top: 2rem;">
+          <table>
+            <thead><tr><th>Severidad</th><th>Criterio</th><th>Canal recomendado</th><th>Respuesta objetivo</th><th>Control de ruido</th></tr></thead>
+            <tbody>
+              <tr><td>P0 · Crítica</td><td>Journey Tier 0 indisponible o error budget en consumo extremo</td><td>On-call + ITSM + canal de incidente</td><td>Inmediata, 24x7</td><td>Un problema correlacionado por causa</td></tr>
+              <tr><td>P1 · Alta</td><td>Impacto significativo o burn rate rápido</td><td>On-call del owner + ticket</td><td>Según OLA acordado</td><td>Ventana, persistencia y mantenimiento</td></tr>
+              <tr><td>P2 · Media</td><td>Degradación sostenida sin urgencia inmediata</td><td>Ticket priorizado</td><td>Siguiente jornada operativa</td><td>Burn rate lento o tendencia</td></tr>
+              <tr><td>P3 · Informativa</td><td>Riesgo, capacidad o higiene técnica</td><td>Backlog / dashboard</td><td>Planificación</td><td>No generar página</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="gobierno">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Gobierno y guardrails</span>
+            <h2>Escalar sin perder seguridad, calidad ni control de consumo.</h2>
+          </div>
+          <p class="section-intro">Toda excepción debe tener owner, motivo, caducidad y evidencia de revisión.</p>
+        </header>
+        <div class="accordion-stack reveal">
+          <details open><summary><span>01</span><span>Identidad, permisos y separación</span><span>+</span></summary><div class="detail-body">SSO/SCIM, grupos por función, políticas IAM de mínimo privilegio, ABAC y <code>dt.security_context</code> para control por registro cuando sea necesario. Separar administración, consulta, automatización y credenciales.</div></details>
+          <details><summary><span>02</span><span>Privacidad y gobierno del dato</span><span>+</span></summary><div class="detail-body">Clasificar fuentes antes de ingerir. Enmascarar o descartar PII, secretos y payloads no necesarios en el origen u OpenPipeline. Definir buckets, retención, acceso, finalidad y propietario del dato.</div></details>
+          <details><summary><span>03</span><span>Observabilidad como código</span><span>+</span></summary><div class="detail-body">Versionar configuraciones soportadas con Monaco 2.x o Terraform. Promover mediante pull request, validación, entornos y rollback. Prohibir cambios manuales permanentes sin reconciliación posterior.</div></details>
+          <details><summary><span>04</span><span>FinOps de telemetría</span><span>+</span></summary><div class="detail-body">Etiquetar con <code>dt.cost.costcenter</code> y <code>dt.cost.product</code>, prever consumo, revisar ingestión/retención/query, reducir duplicidad y alta cardinalidad, y extraer métricas cuando conservar el dato crudo no aporte valor.</div></details>
+          <details><summary><span>05</span><span>Calidad y salud de la plataforma</span><span>+</span></summary><div class="detail-body">Medir cobertura, freshness, datos descartados, agentes desactualizados, ActiveGates, workflows fallidos y errores de configuración. Probar trimestralmente routing, continuidad y restauración de configuración.</div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="roadmap">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Roadmap por puertas de salida</span>
+            <h2>Empezar pequeño, demostrar valor y escalar por patrones.</h2>
+          </div>
+          <p class="section-intro">Las duraciones son orientativas y algunas fases pueden solaparse. No se avanza por calendario, sino por evidencia.</p>
+        </header>
+
+        <div class="roadmap-nav reveal" role="tablist" aria-label="Fases del roadmap">
+          <button class="phase-button" type="button" role="tab" aria-selected="true" data-phase="zero"><span>FASE 0</span><strong>Alinear</strong><small>2 semanas</small></button>
+          <button class="phase-button" type="button" role="tab" aria-selected="false" data-phase="one"><span>FASE 1</span><strong>Fundar</strong><small>3 a 4 semanas</small></button>
+          <button class="phase-button" type="button" role="tab" aria-selected="false" data-phase="two"><span>FASE 2</span><strong>Pilotar</strong><small>4 a 6 semanas</small></button>
+          <button class="phase-button" type="button" role="tab" aria-selected="false" data-phase="three"><span>FASE 3</span><strong>Escalar</strong><small>8 a 12 semanas</small></button>
+          <button class="phase-button" type="button" role="tab" aria-selected="false" data-phase="four"><span>FASE 4</span><strong>Industrializar</strong><small>4 a 6 semanas</small></button>
+          <button class="phase-button" type="button" role="tab" aria-selected="false" data-phase="five"><span>FASE 5</span><strong>Optimizar</strong><small>Continuo</small></button>
+        </div>
+
+        <article class="roadmap-detail reveal" id="roadmap-detail" role="tabpanel" aria-live="polite">
+          <div>
+            <span class="phase-kicker">Fase 0 · 2 semanas</span>
+            <h3>Alinear alcance y valor</h3>
+            <p>Construir la línea base de servicios, journeys, criticidad, stakeholders, restricciones y coste.</p>
+          </div>
+          <div class="phase-columns">
+            <div><h4>Actividades</h4><ul><li>Workshop de objetivos y casos de uso</li><li>Inventario de plataforma y fuentes</li><li>Selección del servicio piloto</li></ul></div>
+            <div><h4>Entregables</h4><ul><li>Project charter y KPIs</li><li>Mapa de stakeholders y RACI</li><li>Assessment y backlog priorizado</li></ul></div>
+            <div class="gate"><strong>Puerta de salida:</strong> sponsor, equipo, piloto, presupuesto y criterios de éxito aprobados.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="entregables">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Catálogo del proyecto</span>
+            <h2>Entregables que sobreviven a la implantación.</h2>
+          </div>
+          <p class="section-intro">Cada artefacto tiene propietario, versión, revisión y criterio de aceptación.</p>
+        </header>
+        <div class="deliverable-groups reveal">
+          <article class="deliverable-group"><h3>Dirección y gobierno</h3><ol><li>Project charter y business case</li><li>Modelo de servicio y RACI</li><li>Políticas de cobertura y criticidad</li><li>Modelo IAM y privacidad</li><li>Modelo FinOps y forecast</li><li>Cuadro de KPIs del framework</li></ol></article>
+          <article class="deliverable-group"><h3>Arquitectura y estándares</h3><ol><li>Arquitectura lógica y de red</li><li>Catálogo de patrones de ingestión</li><li>Estándar semántico y naming</li><li>Baseline OpenPipeline y buckets</li><li>Plantillas de dashboard y notebook</li><li>Plantillas SLI/SLO y alertas</li><li>Repositorio Monaco/Terraform y CI/CD</li></ol></article>
+          <article class="deliverable-group"><h3>Operación y adopción</h3><ol><li>Catálogo de servicios y ownership</li><li>Matriz de routing y escalado</li><li>Runbooks y plantilla de postmortem</li><li>Modelo de soporte de plataforma</li><li>Plan de formación por rol</li><li>Informe de piloto y plan de oleadas</li></ol></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-ink" id="evaluacion">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Evaluación interactiva</span>
+            <h2>¿Qué tan preparado está el entorno?</h2>
+          </div>
+          <p class="section-intro">Marca únicamente lo que exista, esté documentado y se utilice de forma consistente. El progreso se guarda en este navegador.</p>
+        </header>
+
+        <div class="assessment-layout">
+          <div class="check-groups reveal" id="maturity-checks">
+            <fieldset class="check-group"><legend class="sr-only">Estrategia</legend><h3>Estrategia y catálogo</h3>
+              <label class="check-item"><input type="checkbox" value="strategy-inventory"><span>Existe inventario de servicios y journeys críticos.</span></label>
+              <label class="check-item"><input type="checkbox" value="strategy-tier"><span>Cada servicio tiene criticidad y owner.</span></label>
+              <label class="check-item"><input type="checkbox" value="strategy-kpi"><span>El programa tiene KPIs y sponsor.</span></label>
+            </fieldset>
+            <fieldset class="check-group"><legend class="sr-only">Datos</legend><h3>Señales y contexto</h3>
+              <label class="check-item"><input type="checkbox" value="data-core"><span>Servicios críticos tienen métricas, logs y trazas útiles.</span></label>
+              <label class="check-item"><input type="checkbox" value="data-semantic"><span>Nombre, entorno, versión y owner son consistentes.</span></label>
+              <label class="check-item"><input type="checkbox" value="data-quality"><span>Se mide freshness, pérdida y calidad de telemetría.</span></label>
+              <label class="check-item"><input type="checkbox" value="data-privacy"><span>PII, secretos, retención y accesos están gobernados.</span></label>
+            </fieldset>
+            <fieldset class="check-group"><legend class="sr-only">Fiabilidad</legend><h3>Fiabilidad y alertas</h3>
+              <label class="check-item"><input type="checkbox" value="slo-user"><span>Los SLI reflejan experiencia de usuario o consumidor.</span></label>
+              <label class="check-item"><input type="checkbox" value="slo-budget"><span>Los SLO tienen error budget y política de uso.</span></label>
+              <label class="check-item"><input type="checkbox" value="slo-burn"><span>Las alertas usan burn rate o impacto equivalente.</span></label>
+              <label class="check-item"><input type="checkbox" value="slo-noise"><span>Se revisa precisión, ruido y acción de cada alerta.</span></label>
+            </fieldset>
+            <fieldset class="check-group"><legend class="sr-only">Operación</legend><h3>Respuesta y aprendizaje</h3>
+              <label class="check-item"><input type="checkbox" value="ops-routing"><span>Routing y escalado usan ownership y severidad.</span></label>
+              <label class="check-item"><input type="checkbox" value="ops-runbook"><span>Alertas críticas enlazan a un runbook probado.</span></label>
+              <label class="check-item"><input type="checkbox" value="ops-postmortem"><span>Incidentes relevantes producen acciones verificables.</span></label>
+            </fieldset>
+            <fieldset class="check-group"><legend class="sr-only">Escala</legend><h3>Escala y control</h3>
+              <label class="check-item"><input type="checkbox" value="scale-code"><span>Configuración relevante está versionada y promovida.</span></label>
+              <label class="check-item"><input type="checkbox" value="scale-iam"><span>IAM aplica mínimo privilegio y separación funcional.</span></label>
+              <label class="check-item"><input type="checkbox" value="scale-cost"><span>El consumo se asigna por producto o centro de coste.</span></label>
+              <label class="check-item"><input type="checkbox" value="scale-health"><span>Dynatrace y sus pipelines se monitorizan.</span></label>
+            </fieldset>
+          </div>
+
+          <aside class="assessment-result reveal" aria-live="polite">
+            <span class="eyebrow">Resultado</span>
+            <strong class="score-value" id="score-value">0%</strong>
+            <span class="score-label" id="score-label">0 de 18 controles evidenciados</span>
+            <div class="score-track" aria-hidden="true"><div class="score-bar" id="score-bar"></div></div>
+            <h3 class="maturity-name" id="maturity-name">Nivel 0 · Ad hoc</h3>
+            <p id="maturity-advice">Empieza por inventario, criticidad, owner y un único journey piloto.</p>
+            <div class="actions">
+              <button class="btn btn-primary" id="export-assessment" type="button">Exportar resultado</button>
+              <button class="btn" id="reset-assessment" type="button">Reiniciar</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="kpis">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">KPIs del framework</span>
+            <h2>Medir adopción, fiabilidad, acción y eficiencia.</h2>
+          </div>
+          <p class="section-intro">Los umbrales se fijan tras la línea base. Estos indicadores evitan confundir más datos con más observabilidad.</p>
+        </header>
+        <div class="kpi-grid reveal">
+          <article class="kpi"><strong>Cobertura crítica</strong><p>Servicios Tier 0/1 con owner, señales mínimas, SLO, alerta y runbook.</p><small>Objetivo inicial sugerido: 100% del piloto y crecimiento por oleadas.</small></article>
+          <article class="kpi"><strong>Calidad de telemetría</strong><p>Fuentes con datos actuales, semántica válida y sin pérdida relevante.</p><small>Medir freshness, drop rate y completitud de atributos.</small></article>
+          <article class="kpi"><strong>MTTD y MTTR</strong><p>Tiempo mediano para detectar y restaurar, segmentado por severidad.</p><small>Comparar línea base y tendencia, no solo promedio.</small></article>
+          <article class="kpi"><strong>Precisión de alertas</strong><p>Alertas que requirieron una acción humana o automática válida.</p><small>Revisar falsos positivos y páginas sin acción.</small></article>
+          <article class="kpi"><strong>Defensa del error budget</strong><p>SLO incumplidos y presupuesto consumido por servicio y periodo.</p><small>Vincular a decisiones de release y deuda de fiabilidad.</small></article>
+          <article class="kpi"><strong>Automatización efectiva</strong><p>Workflows correctos y remediaciones verificadas sobre ejecuciones totales.</p><small>No contar automatizaciones sin resultado comprobado.</small></article>
+          <article class="kpi"><strong>Configuración como código</strong><p>Objetos gobernados presentes en repositorio y sin drift no autorizado.</p><small>Control por pull request y promoción entre entornos.</small></article>
+          <article class="kpi"><strong>Coste por producto</strong><p>Consumo DPS asignado, previsto y optimizado por capacidad de negocio.</p><small>Observar ingestión, retención y consulta por separado.</small></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="riesgos">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Riesgos principales</span>
+            <h2>Controles que deben entrar desde el primer sprint.</h2>
+          </div>
+          <p class="section-intro">La mayor parte de los fallos no son de herramienta, sino de alcance, ownership, calidad y operación.</p>
+        </header>
+        <div class="table-wrap reveal">
+          <table>
+            <thead><tr><th>Riesgo</th><th>Señal temprana</th><th>Control preventivo</th><th>Owner</th></tr></thead>
+            <tbody>
+              <tr><td>Telemetría sin caso de uso</td><td>Volumen crece, MTTR no mejora</td><td>Ficha de valor y criterio de retención por fuente</td><td>Plataforma + producto</td></tr>
+              <tr><td>Ruido de alertas</td><td>Páginas ignoradas o duplicadas</td><td>SLO/burn rate, Problem trigger y revisión mensual</td><td>SRE + owner</td></tr>
+              <tr><td>Coste imprevisible</td><td>Ingestión o query fuera de forecast</td><td>Asignación, budgets, sampling y OpenPipeline</td><td>FinOps + plataforma</td></tr>
+              <tr><td>Fuga de datos sensibles</td><td>PII o secretos visibles</td><td>Clasificación, minimización y masking antes de almacenar</td><td>Seguridad + data owner</td></tr>
+              <tr><td>Dependencia del equipo central</td><td>Backlog de onboarding creciente</td><td>Plantillas, autoservicio, office hours y certificación</td><td>Plataforma</td></tr>
+              <tr><td>Drift de configuración</td><td>Entornos no reproducibles</td><td>Monaco/Terraform, CI/CD y reconciliación</td><td>Plataforma</td></tr>
+              <tr><td>Cobertura aparente</td><td>Agente instalado, journey ciego</td><td>Definition of Done por servicio y prueba funcional</td><td>Owner de servicio</td></tr>
+              <tr><td>Automatización insegura</td><td>Remediaciones amplifican impacto</td><td>Least privilege, dry-run, límites y rollback</td><td>SRE + seguridad</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="datos-necesarios">
+      <div class="container inputs-grid">
+        <div class="reveal">
+          <span class="eyebrow">Información para aterrizar la propuesta</span>
+          <h2>Diez datos convierten este marco en un plan exacto.</h2>
+          <p>Sin esta información, arquitectura, licencias, capacidad, plazos y objetivos solo pueden considerarse una referencia.</p>
+        </div>
+        <div class="reveal">
+          <ol class="input-list">
+            <li><span>Modelo Dynatrace actual: SaaS/Managed, Latest/Classic y contrato DPS.</span></li>
+            <li><span>Inventario de aplicaciones, servicios, journeys y criticidad.</span></li>
+            <li><span>Topología: on-prem, AWS/Azure/GCP, Kubernetes, PaaS y mainframe.</span></li>
+            <li><span>Volúmenes estimados de hosts, pods, usuarios, logs, spans y métricas.</span></li>
+            <li><span>Restricciones de red, proxies, egress, regiones y residencia.</span></li>
+            <li><span>IdP, grupos, segregación organizativa y requisitos regulatorios.</span></li>
+            <li><span>ITSM, on-call, ChatOps, CMDB, CI/CD y repositorios existentes.</span></li>
+            <li><span>SLAs/OLAs actuales, horarios de soporte y objetivos de negocio.</span></li>
+            <li><span>Herramientas actuales, contratos, duplicidades y migraciones previstas.</span></li>
+            <li><span>Línea base de incidentes, MTTD, MTTR, ruido y consumo.</span></li>
+          </ol>
+          <div class="decision-box" style="margin-top: 1.4rem;">
+            <h3>Decisión solicitada</h3>
+            <ul><li>Aprobar una fase 0 de dos semanas.</li><li>Nombrar sponsor, platform owner y servicio piloto Tier 0/1.</li><li>Autorizar acceso de lectura a inventario, arquitectura, Dynatrace y consumo.</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="fuentes">
+      <div class="container">
+        <header class="section-head reveal">
+          <div>
+            <span class="eyebrow">Investigación y trazabilidad</span>
+            <h2>Fuentes primarias consultadas.</h2>
+          </div>
+          <p class="section-intro">Documentación revisada el 23 de agosto de 2026. Capacidades, límites y licenciamiento deben validarse en el tenant y contrato concretos.</p>
+        </header>
+        <div class="source-groups reveal">
+          <div class="source-group"><h3>Plataforma y datos</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/what-is-dynatrace" target="_blank" rel="noreferrer">Qué es Dynatrace</a><small>Plataforma y capacidades</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-grail/architecture" target="_blank" rel="noreferrer">Arquitectura de Grail</a><small>Ingesta, almacenamiento y consulta</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing" target="_blank" rel="noreferrer">Procesamiento en OpenPipeline</a><small>Routing, transformación y stages</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs" target="_blank" rel="noreferrer">Log Analytics</a><small>Logs, Grail, DQL y consumo</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics" target="_blank" rel="noreferrer">Metrics powered by Grail</a><small>Métricas e ingestión</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Captura y cobertura</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/deploy-dynatrace/oneagent/installation/how-do-i-install-dynatrace-oneagent" target="_blank" rel="noreferrer">Ingestar datos en Dynatrace</a><small>Selección por entorno</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry" target="_blank" rel="noreferrer">OpenTelemetry y Dynatrace</a><small>OTLP y estrategia híbrida</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate" target="_blank" rel="noreferrer">Dynatrace ActiveGate</a><small>Proxy, routing y monitorización</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment" target="_blank" rel="noreferrer">Despliegue en Kubernetes</a><small>Operator y niveles de cobertura</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/license/capabilities/real-user-synthetic-monitoring" target="_blank" rel="noreferrer">RUM y Synthetic</a><small>Experiencia real y proactiva</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/secure/application-security" target="_blank" rel="noreferrer">Application Security</a><small>Capacidades y modos</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Fiabilidad y gobierno</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/deliver/service-level-objectives" target="_blank" rel="noreferrer">Service-Level Objectives</a><small>DQL, error budget y burn rate</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications" target="_blank" rel="noreferrer">Alerting y notifications</a><small>Problems, eventos y Workflows</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags" target="_blank" rel="noreferrer">Primary Grail fields y tags</a><small>Ownership, coste, acceso y routing</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference" target="_blank" rel="noreferrer">Configuration as Code con Monaco</a><small>Automatización de configuración</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/access-concepts" target="_blank" rel="noreferrer">Conceptos de acceso</a><small>ABAC, políticas y límites</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/license" target="_blank" rel="noreferrer">Licenciamiento DPS</a><small>Consumo y compromiso</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Análisis y operación</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services" target="_blank" rel="noreferrer">Servicios</a><small>Salud, dependencias y análisis</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing" target="_blank" rel="noreferrer">Distributed Tracing</a><small>Trazas y contexto</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks" target="_blank" rel="noreferrer">Dashboards y Notebooks</a><small>Exploración y visualización</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/cost-allocation" target="_blank" rel="noreferrer">Cost allocation en OpenPipeline</a><small>Producto y centro de coste</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Deep monitoring</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes" target="_blank" rel="noreferrer">Modos OneAgent</a><small>Full-Stack e inyección de módulos</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support" target="_blank" rel="noreferrer">Technology support</a><small>Matriz oficial vigente</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix" target="_blank" rel="noreferrer">Platform and capability matrix</a><small>Lenguajes, servidores web y plataformas</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/applications-and-microservices/use-cases/always-on-app-profiling" target="_blank" rel="noreferrer">Always-on profiling</a><small>CPU, memoria y hotspots</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Business Events</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing" target="_blank" rel="noreferrer">Captura de Business Events</a><small>Fuentes disponibles</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-oneagent" target="_blank" rel="noreferrer">Captura con OneAgent</a><small>Tecnologías soportadas</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-processing-openpipeline" target="_blank" rel="noreferrer">Procesamiento con OpenPipeline</a><small>Extracción, routing y métricas</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources" target="_blank" rel="noreferrer">Fuentes externas</a><small>API, JSON, CloudEvents y lotes</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Logs e ingesta</h3><ul>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion" target="_blank" rel="noreferrer">Ingesta de logs</a><small>OneAgent, API, Syslog, OTLP y cloud</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits" target="_blank" rel="noreferrer">Límites de logs</a><small>Tamaño, fuentes y throughput</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/api-ingestion-reference" target="_blank" rel="noreferrer">Referencia de ingesta</a><small>Endpoints y señales</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/access-limit" target="_blank" rel="noreferrer">Límites de API</a><small>Payloads y saturación</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Estándares abiertos</h3><ul>
+            <li><a href="https://opentelemetry.io/docs/concepts/observability-primer/" target="_blank" rel="noreferrer">OpenTelemetry Observability Primer</a><small>Señales, SLI y SLO</small></li>
+            <li><a href="https://opentelemetry.io/docs/specs/semconv/" target="_blank" rel="noreferrer">Semantic Conventions</a><small>Convenciones entre señales</small></li>
+            <li><a href="https://sre.google/workbook/alerting-on-slos/" target="_blank" rel="noreferrer">Google SRE: Alerting on SLOs</a><small>Multi-window y burn rate</small></li>
+          </ul></div>
+          <div class="source-group"><h3>Nota de uso</h3><p>Las cifras de disponibilidad, plazos, RACI y objetivos operativos de esta propuesta son recomendaciones de diseño, no límites ni compromisos publicados por Dynatrace. Se deben acordar con negocio, operaciones, seguridad y FinOps.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <p>Framework de monitorización con Dynatrace · Propuesta de referencia · 23/08/2026</p>
+      <button class="btn" type="button" id="print-page">Imprimir / guardar PDF</button>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const stageData = {
+        capture: {
+          number: "CAPA 01",
+          title: "Captura híbrida, elegida por caso de uso",
+          description: "OneAgent para descubrimiento y profundidad automática; Dynatrace Operator en Kubernetes; OpenTelemetry para estándares abiertos; RUM y Synthetic para experiencia; integraciones cloud, extensiones y APIs para el resto.",
+          components: ["OneAgent y Operator", "OpenTelemetry Collector y OTLP", "RUM, Synthetic, APIs y Extensions"],
+          guardrails: ["Elegir por valor y acceso", "Evitar doble instrumentación", "Validar overhead y volumen"],
+          link: "https://docs.dynatrace.com/docs/deploy-dynatrace/oneagent/installation/how-do-i-install-dynatrace-oneagent",
+          linkText: "Fuente oficial sobre ingestión"
+        },
+        transport: {
+          number: "CAPA 02",
+          title: "Transporte resiliente y segmentado",
+          description: "ActiveGate puede actuar como proxy seguro, concentrar tráfico, ejecutar monitorización remota y habilitar ubicaciones Synthetic privadas. Las network zones controlan rutas y reducen cruces innecesarios.",
+          components: ["Environment ActiveGate", "Network zones y proxies", "Ubicaciones Synthetic privadas"],
+          guardrails: ["Alta disponibilidad según criticidad", "Egress mínimo y certificados", "Capacidad, cola y actualización monitorizadas"],
+          link: "https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate",
+          linkText: "Fuente oficial sobre ActiveGate"
+        },
+        process: {
+          number: "CAPA 03",
+          title: "Gobierno del dato antes de almacenarlo",
+          description: "OpenPipeline enruta registros, aplica procesamiento ordenado y permite parsear, transformar, enmascarar, descartar, extraer y asignar buckets o metadatos de coste.",
+          components: ["Ingest sources y routing", "Pipelines por dominio o equipo", "Procesadores DQL/DPL y stages"],
+          guardrails: ["Máscara de PII y secretos", "Ruta explícita para datos de valor", "Control de volumen y cardinalidad"],
+          link: "https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing",
+          linkText: "Fuente oficial sobre OpenPipeline"
+        },
+        context: {
+          number: "CAPA 04",
+          title: "Un plano analítico con topología",
+          description: "Grail unifica logs, métricas, spans, eventos, negocio y seguridad. Smartscape añade relaciones y el Semantic Dictionary normaliza campos; DQL permite consultar y correlacionar los datos.",
+          components: ["Grail buckets y tablas", "Smartscape on Grail", "DQL, Dashboards y Notebooks"],
+          guardrails: ["Buckets, retención y permisos", "Semántica compartida", "Consultas eficientes y reutilizables"],
+          link: "https://docs.dynatrace.com/docs/platform/grail/dynatrace-grail/architecture",
+          linkText: "Fuente oficial sobre Grail"
+        },
+        act: {
+          number: "CAPA 05",
+          title: "Detección, correlación y respuesta",
+          description: "Dynatrace Intelligence genera y correlaciona eventos en Problems, añade impacto, dependencias y causa probable. Workflows filtra, enruta, crea tickets o ejecuta una remediación controlada.",
+          components: ["Anomaly detection y Davis events", "Problems y causa probable", "Workflows y conectores"],
+          guardrails: ["Problem trigger para reducir ruido", "Routing mediante ownership", "Remediación con límites y rollback"],
+          link: "https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications",
+          linkText: "Fuente oficial sobre alerting y Workflows"
+        }
+      };
+
+      const loopData = {
+        design: { step: "Paso 01", title: "Diseñar desde el resultado", description: "Define qué experiencia o capacidad debe protegerse, quién la posee y qué nivel de fiabilidad necesita antes de elegir señales.", input: "Journey, criticidad, arquitectura, riesgo y expectativas.", artifact: "Ficha de servicio con SLI/SLO propuesto y mapa de dependencias.", control: "Aprobación conjunta de negocio, producto, SRE y seguridad." },
+        instrument: { step: "Paso 02", title: "Instrumentar con intención", description: "Elige OneAgent, OTel, APIs o extensiones por valor, compatibilidad, profundidad y coste. Propaga el contexto obligatorio.", input: "Patrón técnico, fuentes disponibles y datos sensibles.", artifact: "Plan de instrumentación y Definition of Done automatizable.", control: "Prueba funcional, overhead, cardinalidad y ausencia de datos prohibidos." },
+        observe: { step: "Paso 03", title: "Observar por audiencia", description: "Construye vistas distintas para dirección, producto, SRE y diagnóstico sin duplicar la lógica de los indicadores.", input: "SLI validados, topología y preguntas operativas reales.", artifact: "Dashboard de servicio, vista ejecutiva y notebook de investigación.", control: "Cada visual responde a una decisión y tiene owner." },
+        detect: { step: "Paso 04", title: "Detectar impacto accionable", description: "Combina SLO, burn rate, anomalía y contexto de cambio. Usa Problems para correlacionar alertas relacionadas.", input: "Baseline, SLO, criticidad, ventanas y mantenimiento.", artifact: "Políticas de detección y matriz de severidad.", control: "Prueba de precisión, recall, tiempo de detección y reset." },
+        respond: { step: "Paso 05", title: "Responder con el equipo correcto", description: "Enriquece con owner, runbook y contexto; enruta a on-call o ticket según urgencia; automatiza solo acciones acotadas.", input: "Problem, owner, severidad, calendario y dependencia.", artifact: "Workflow, integración ITSM/ChatOps y runbook versionado.", control: "Simulación de incidente y verificación end-to-end." },
+        learn: { step: "Paso 06", title: "Aprender y ajustar", description: "Convierte incidentes, consumo y feedback de usuarios en cambios de código, política, capacidad y documentación.", input: "Postmortem, KPIs, drift, coste y backlog.", artifact: "Acciones con dueño y revisión de SLO/cobertura.", control: "Evidencia de cierre y medición del efecto." }
+      };
+
+      const roadmapData = {
+        zero: { kicker: "Fase 0 · 2 semanas", title: "Alinear alcance y valor", description: "Construir la línea base de servicios, journeys, criticidad, stakeholders, restricciones y coste.", activities: ["Workshop de objetivos y casos de uso", "Inventario de plataforma y fuentes", "Selección del servicio piloto"], deliverables: ["Project charter y KPIs", "Mapa de stakeholders y RACI", "Assessment y backlog priorizado"], gate: "Sponsor, equipo, piloto, presupuesto y criterios de éxito aprobados." },
+        one: { kicker: "Fase 1 · 3 a 4 semanas", title: "Fundar la plataforma", description: "Establecer conectividad, IAM, arquitectura, naming, gobierno del dato y repositorio de configuración.", activities: ["Diseño de ActiveGate y network zones", "SSO, grupos, políticas y service users", "Baseline de OpenPipeline, buckets y semántica"], deliverables: ["Arquitectura objetivo y seguridad", "Repositorio Monaco/Terraform con CI", "Estándares de telemetría y coste"], gate: "Datos de prueba llegan con contexto, acceso correcto, masking verificado y configuración reproducible." },
+        two: { kicker: "Fase 2 · 4 a 6 semanas", title: "Demostrar con un piloto", description: "Cubrir un journey Tier 0/1 de extremo a extremo y probar que el modelo reduce incertidumbre operativa.", activities: ["Instrumentación híbrida y topología", "RUM/Synthetic, SLI/SLO y dashboards", "Problems, routing, runbook y simulacro"], deliverables: ["Ficha completa del servicio", "SLO y alertas de burn rate", "Informe de valor, gaps y coste real"], gate: "El simulacro detecta, enruta, diagnostica y restaura con evidencia y sin exposición de datos sensibles." },
+        three: { kicker: "Fase 3 · 8 a 12 semanas", title: "Escalar por oleadas", description: "Reutilizar patrones del piloto para servicios Tier 0/1 y formar a los equipos propietarios.", activities: ["Oleadas por dominio y criticidad", "Plantillas de onboarding y autoservicio", "Office hours, formación y certificación"], deliverables: ["Catálogo de cobertura y owners", "Librería de patrones aprobados", "Cuadro de adopción y deuda"], gate: "Los equipos pueden incorporar un servicio estándar sin depender del equipo central para cada cambio." },
+        four: { kicker: "Fase 4 · 4 a 6 semanas", title: "Industrializar el gobierno", description: "Cerrar drift, calidad, coste, continuidad, excepciones y cumplimiento con controles automatizados.", activities: ["Policy as code y validaciones", "Forecast y asignación de consumo", "Meta-monitorización y pruebas de continuidad"], deliverables: ["Controles CI y reconciliación", "Showback/chargeback por producto", "SLO de la plataforma de observabilidad"], gate: "Existe trazabilidad de cambio, consumo asignado y prueba satisfactoria de continuidad." },
+        five: { kicker: "Fase 5 · continuo", title: "Optimizar y aprender", description: "Usar KPIs, incidentes, error budgets y consumo para priorizar mejoras trimestrales.", activities: ["Revisión mensual de alertas y coste", "Revisión trimestral de SLO y cobertura", "Evolución de patrones y automatizaciones"], deliverables: ["Backlog de mejora priorizado", "Informe trimestral de fiabilidad", "Retirada de datos y objetos sin valor"], gate: "La mejora se demuestra con tendencia de KPIs, no por cantidad de dashboards o volumen ingerido." }
+      };
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+      const toList = (items) => items.map((item) => `<li>${item}</li>`).join("");
+
+      const menuButton = $(".nav-toggle");
+      const nav = $(".site-nav");
+      menuButton.addEventListener("click", () => {
+        const isOpen = menuButton.getAttribute("aria-expanded") === "true";
+        menuButton.setAttribute("aria-expanded", String(!isOpen));
+        nav.classList.toggle("is-open", !isOpen);
+      });
+      $$(".site-nav a").forEach((link) => link.addEventListener("click", () => {
+        nav.classList.remove("is-open");
+        menuButton.setAttribute("aria-expanded", "false");
+      }));
+
+      const progress = $(".scroll-progress");
+      const updateScrollProgress = () => {
+        const total = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = `${total > 0 ? (window.scrollY / total) * 100 : 0}%`;
+      };
+      document.addEventListener("scroll", updateScrollProgress, { passive: true });
+      updateScrollProgress();
+
+      const renderStage = (key) => {
+        const item = stageData[key];
+        const panel = $("#stage-detail");
+        panel.innerHTML = `<span class="stage-number">${item.number}</span><h3>${item.title}</h3><p>${item.description}</p><div class="stage-detail-grid"><div class="stage-detail-box"><strong>Componentes</strong><ul>${toList(item.components)}</ul></div><div class="stage-detail-box"><strong>Guardrails</strong><ul>${toList(item.guardrails)}</ul></div></div><p class="source-inline"><a href="${item.link}" target="_blank" rel="noreferrer">${item.linkText}</a></p>`;
+      };
+      $$(".stage-button").forEach((button) => button.addEventListener("click", () => {
+        $$(".stage-button").forEach((peer) => peer.setAttribute("aria-selected", "false"));
+        button.setAttribute("aria-selected", "true");
+        renderStage(button.dataset.stage);
+      }));
+
+      const setCoverageDetail = (card) => {
+        const panel = $("#coverage-detail");
+        $(".coverage-detail-label", panel).textContent = card.dataset.label;
+        $("h3", panel).textContent = card.dataset.title;
+        $("p", panel).textContent = card.dataset.summary;
+        $("[data-detail='signals']", panel).innerHTML = toList(card.dataset.signals.split("|"));
+        $("[data-detail='dod']", panel).innerHTML = toList(card.dataset.dod.split("|"));
+        $$(".coverage-card").forEach((peer) => peer.setAttribute("aria-pressed", String(peer === card)));
+      };
+      $$(".coverage-card").forEach((card) => card.addEventListener("click", () => setCoverageDetail(card)));
+      $$(".filter-button").forEach((button) => button.addEventListener("click", () => {
+        const filter = button.dataset.filter;
+        $$(".filter-button").forEach((peer) => peer.setAttribute("aria-pressed", String(peer === button)));
+        $$(".coverage-card").forEach((card) => { card.hidden = filter !== "all" && card.dataset.area !== filter; });
+        const firstVisible = $$(".coverage-card").find((card) => !card.hidden);
+        if (firstVisible) setCoverageDetail(firstVisible);
+      }));
+
+      const renderLoop = (key) => {
+        const item = loopData[key];
+        $("#loop-detail").innerHTML = `<span class="eyebrow">${item.step}</span><h3>${item.title}</h3><p>${item.description}</p><div class="loop-detail-grid"><div><strong>Entrada</strong><p>${item.input}</p></div><div><strong>Artefacto</strong><p>${item.artifact}</p></div><div><strong>Control</strong><p>${item.control}</p></div></div>`;
+      };
+      $$(".loop-button").forEach((button) => button.addEventListener("click", () => {
+        $$(".loop-button").forEach((peer) => peer.setAttribute("aria-selected", "false"));
+        button.setAttribute("aria-selected", "true");
+        renderLoop(button.dataset.loop);
+      }));
+
+      const targetInput = $("#slo-target");
+      const windowInput = $("#slo-window");
+      const volumeInput = $("#slo-volume");
+      const criticality = $("#criticality");
+      const formatNumber = (value, digits = 0) => new Intl.NumberFormat("es-ES", { maximumFractionDigits: digits }).format(value);
+      const updateCalculator = () => {
+        const target = Math.min(99.999, Math.max(90, Number(targetInput.value) || 99.9));
+        const days = Math.max(1, Number(windowInput.value) || 30);
+        const volume = Math.max(1, Number(volumeInput.value) || 1);
+        const budgetRatio = (100 - target) / 100;
+        const minutes = days * 24 * 60 * budgetRatio;
+        const allowed = Math.floor(volume * budgetRatio + Number.EPSILON * volume);
+        $("#budget-minutes").textContent = `${formatNumber(minutes, minutes < 10 ? 2 : 1)} min`;
+        $("#budget-events").textContent = formatNumber(allowed);
+        $("#budget-percent").textContent = `${formatNumber(budgetRatio * 100, 3)}%`;
+        const tier = criticality.options[criticality.selectedIndex].text.split(" · ")[0];
+        $("#calc-advice").textContent = `${tier}: combina una alerta rápida de burn rate con otra lenta. Usa página solo si la velocidad de consumo exige intervención inmediata; si no, crea un ticket.`;
+      };
+      criticality.addEventListener("change", () => { targetInput.value = criticality.value; updateCalculator(); });
+      [targetInput, windowInput, volumeInput].forEach((input) => input.addEventListener("input", updateCalculator));
+      updateCalculator();
+
+      const renderPhase = (key) => {
+        const item = roadmapData[key];
+        $("#roadmap-detail").innerHTML = `<div><span class="phase-kicker">${item.kicker}</span><h3>${item.title}</h3><p>${item.description}</p></div><div class="phase-columns"><div><h4>Actividades</h4><ul>${toList(item.activities)}</ul></div><div><h4>Entregables</h4><ul>${toList(item.deliverables)}</ul></div><div class="gate"><strong>Puerta de salida:</strong> ${item.gate}</div></div>`;
+      };
+      $$(".phase-button").forEach((button) => button.addEventListener("click", () => {
+        $$(".phase-button").forEach((peer) => peer.setAttribute("aria-selected", "false"));
+        button.setAttribute("aria-selected", "true");
+        renderPhase(button.dataset.phase);
+      }));
+
+      const checks = $$("#maturity-checks input[type='checkbox']");
+      const maturityLevels = [
+        { max: 20, name: "Nivel 0 · Ad hoc", advice: "Empieza por inventario, criticidad, owner y un único journey piloto." },
+        { max: 40, name: "Nivel 1 · Baseline", advice: "Estandariza contexto y cobertura mínima antes de ampliar fuentes." },
+        { max: 60, name: "Nivel 2 · Estandarizado", advice: "Conecta SLO, routing, runbooks y revisión sistemática del ruido." },
+        { max: 80, name: "Nivel 3 · Gestionado", advice: "Automatiza configuración, calidad, coste y autoservicio con guardrails." },
+        { max: 100, name: "Nivel 4 · Optimizado", advice: "Centra la mejora en error budgets, aprendizaje y eficiencia por producto." }
+      ];
+      const storageKey = "dynatrace-framework-maturity-v1";
+      const updateMaturity = () => {
+        const selected = checks.filter((check) => check.checked);
+        const score = Math.round((selected.length / checks.length) * 100);
+        const level = maturityLevels.find((candidate) => score <= candidate.max) || maturityLevels[maturityLevels.length - 1];
+        $("#score-value").textContent = `${score}%`;
+        $("#score-label").textContent = `${selected.length} de ${checks.length} controles evidenciados`;
+        $("#score-bar").style.width = `${score}%`;
+        $("#maturity-name").textContent = level.name;
+        $("#maturity-advice").textContent = level.advice;
+        try { localStorage.setItem(storageKey, JSON.stringify(selected.map((check) => check.value))); } catch (_) { /* Storage may be unavailable. */ }
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        checks.forEach((check) => { check.checked = saved.includes(check.value); });
+      } catch (_) { /* Ignore invalid or unavailable storage. */ }
+      checks.forEach((check) => check.addEventListener("change", updateMaturity));
+      updateMaturity();
+
+      $("#reset-assessment").addEventListener("click", () => {
+        checks.forEach((check) => { check.checked = false; });
+        updateMaturity();
+      });
+      $("#export-assessment").addEventListener("click", () => {
+        const selected = checks.filter((check) => check.checked);
+        const score = Math.round((selected.length / checks.length) * 100);
+        const lines = [
+          "Evaluación de madurez del framework Dynatrace",
+          `Fecha: ${new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(new Date())}`,
+          `Resultado: ${score}% (${selected.length} de ${checks.length})`,
+          `Madurez: ${$("#maturity-name").textContent}`,
+          "",
+          "Controles evidenciados:",
+          ...selected.map((check) => `- ${check.closest("label").innerText.trim()}`),
+          "",
+          `Siguiente foco: ${$("#maturity-advice").textContent}`
+        ];
+        const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "evaluacion-madurez-dynatrace.txt";
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+
+      $("#print-page").addEventListener("click", () => window.print());
+
+      const sectionLinks = $$(".site-nav a");
+      const observedSections = sectionLinks.map((link) => $(link.getAttribute("href"))).filter(Boolean);
+      const navObserver = new IntersectionObserver((entries) => {
+        entries.filter((entry) => entry.isIntersecting).forEach((entry) => {
+          sectionLinks.forEach((link) => link.removeAttribute("aria-current"));
+          const active = sectionLinks.find((link) => link.getAttribute("href") === `#${entry.target.id}`);
+          if (active) active.setAttribute("aria-current", "location");
+        });
+      }, { rootMargin: "-25% 0px -65% 0px", threshold: 0 });
+      observedSections.forEach((section) => navObserver.observe(section));
+
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        $$(".reveal").forEach((element) => element.classList.add("is-visible"));
+      } else {
+        const revealObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.08 });
+        $$(".reveal").forEach((element) => revealObserver.observe(element));
+      }
+    })();
+  </script>
+</body>
+</html>
