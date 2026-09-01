@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Exploración técnica e interactiva de Dynatrace como plataforma de observabilidad, infraestructura, análisis de incidencias y extensibilidad.">
+  <title>Dynatrace: exploración de observabilidad</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10110f;
+      --bg-soft: #171815;
+      --surface: #1d1f1b;
+      --surface-2: #252721;
+      --text: #f2f1eb;
+      --muted: #aaa99f;
+      --line: #3b3d35;
+      --accent: #d59a3a;
+      --accent-strong: #f0b652;
+      --accent-ink: #221704;
+      --good: #b7c99a;
+      --warning: #e1bd77;
+      --danger: #dc8b73;
+      --shadow: 0 24px 80px rgba(4, 5, 4, .34);
+      --radius: 16px;
+      --header-height: 70px;
+      --max: 1320px;
+      font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f2f1eb;
+      --bg-soft: #e9e8e0;
+      --surface: #fbfaf6;
+      --surface-2: #dfded5;
+      --text: #1c1d19;
+      --muted: #66675f;
+      --line: #c9c8be;
+      --accent: #a9680f;
+      --accent-strong: #815009;
+      --accent-ink: #fffaf0;
+      --good: #53683d;
+      --warning: #8a650c;
+      --danger: #994b36;
+      --shadow: 0 24px 80px rgba(36, 37, 31, .12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--bg); }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+    body[data-mode="present"] { scroll-snap-type: y proximity; }
+    body[data-mode="present"] .chapter { scroll-snap-align: start; min-height: 100dvh; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--accent-strong); }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    button:focus-visible, a:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--accent-strong);
+      outline-offset: 4px;
+    }
+    .skip-link {
+      position: fixed; left: 1rem; top: -5rem; z-index: 100;
+      padding: .75rem 1rem; border-radius: 999px;
+      background: var(--accent-strong); color: var(--accent-ink); font-weight: 750;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      height: var(--header-height);
+      display: flex; align-items: center; gap: 1.1rem;
+      padding: 0 clamp(1rem, 3vw, 2.5rem);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: baseline; gap: .55rem; white-space: nowrap; }
+    .brand strong { font-size: .95rem; letter-spacing: -.02em; }
+    .brand span { color: var(--muted); font-size: .78rem; }
+    .progress-shell { flex: 1; height: 2px; background: var(--line); overflow: hidden; }
+    .progress { width: 8%; height: 100%; background: var(--accent-strong); transition: width .35s ease; }
+    .controls { display: flex; gap: .45rem; align-items: center; }
+    .control {
+      border: 1px solid var(--line); border-radius: 999px;
+      background: var(--surface); color: var(--text);
+      min-height: 38px; padding: 0 .9rem; cursor: pointer; white-space: nowrap;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .control:hover { border-color: var(--accent); background: var(--surface-2); }
+    .control:active { transform: translateY(1px); }
+    .control[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+    .layout {
+      width: min(100%, 1680px); margin: 0 auto;
+      display: grid; grid-template-columns: 250px minmax(0, 1fr);
+    }
+    .rail {
+      position: sticky; top: var(--header-height); align-self: start;
+      height: calc(100dvh - var(--header-height));
+      padding: 2rem 1.25rem 2rem clamp(1rem, 2vw, 2rem);
+      border-right: 1px solid var(--line); overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .rail::-webkit-scrollbar { display: none; }
+    .rail-title { margin: 0 0 1rem; color: var(--muted); font-size: .76rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .rail-nav { display: grid; gap: .3rem; }
+    .rail-nav a {
+      display: block;
+      padding: .56rem .65rem; border-radius: 10px;
+      color: var(--muted); font-size: .84rem; text-decoration: none;
+    }
+    .rail-nav a:hover, .rail-nav a[aria-current="true"] { background: var(--surface); color: var(--text); }
+    .rail-note { margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .76rem; }
+
+    main { min-width: 0; }
+    .chapter {
+      position: relative;
+      padding: clamp(4rem, 8vw, 8rem) clamp(1.2rem, 6vw, 6rem);
+      border-bottom: 1px solid var(--line);
+      scroll-margin-top: var(--header-height);
+    }
+    .chapter-inner { width: min(100%, var(--max)); margin: 0 auto; }
+    .eyebrow {
+      margin: 0 0 1.1rem; color: var(--accent-strong);
+      font-size: .78rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase;
+    }
+    h1, h2, h3 { text-wrap: balance; }
+    h1 { margin: 0; font-size: clamp(3.1rem, 6vw, 5.5rem); line-height: .92; letter-spacing: -.065em; max-width: 11ch; }
+    h2 { margin: 0 0 1.2rem; font-size: clamp(2.4rem, 5vw, 5rem); line-height: .98; letter-spacing: -.052em; max-width: 14ch; }
+    h3 { margin: 0; font-size: clamp(1.25rem, 2vw, 1.75rem); line-height: 1.1; letter-spacing: -.025em; }
+    p { max-width: 68ch; }
+    .lede { margin: 1.3rem 0 0; color: var(--muted); font-size: clamp(1.05rem, 1.5vw, 1.3rem); line-height: 1.55; }
+    .section-head { margin-bottom: clamp(2.5rem, 5vw, 5rem); }
+    .section-head p { color: var(--muted); font-size: 1.08rem; }
+
+    .hero { padding-top: clamp(2rem, 4vw, 4rem); min-height: calc(100dvh - var(--header-height)); display: grid; align-items: center; }
+    .hero-grid { display: grid; grid-template-columns: minmax(500px, 1fr) minmax(360px, 1fr); gap: clamp(2rem, 3vw, 3rem); align-items: center; }
+    .hero-copy { position: relative; z-index: 2; }
+    .hero-visual {
+      position: relative; min-height: min(66dvh, 740px); overflow: hidden;
+      border-radius: var(--radius); box-shadow: var(--shadow); background: #11120f;
+    }
+    .hero-visual img { width: 100%; height: 100%; min-height: inherit; object-fit: cover; display: block; }
+    .hero-visual::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.11); border-radius: inherit; pointer-events: none; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 2rem; }
+    .button-link {
+      display: inline-flex; align-items: center; min-height: 46px; padding: 0 1.15rem;
+      border-radius: 999px; font-weight: 750; text-decoration: none; white-space: nowrap;
+      background: var(--accent-strong); color: var(--accent-ink);
+    }
+    .button-link.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .button-link:hover { color: var(--accent-ink); transform: translateY(-1px); }
+    .button-link.secondary:hover { color: var(--text); border-color: var(--accent); }
+
+    .thesis {
+      margin-top: 2.5rem; padding: 1.4rem 1.5rem; max-width: 760px;
+      border-left: 3px solid var(--accent); background: var(--surface);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .thesis strong { display: block; margin-bottom: .35rem; }
+    .thesis p { margin: 0; color: var(--muted); }
+
+    .lensbar { display: flex; flex-wrap: wrap; gap: .55rem; margin: 2rem 0 0; }
+    .lensbar .control { min-height: 36px; font-size: .84rem; }
+    [data-lens].is-dimmed { opacity: .22; filter: saturate(.25); }
+
+    .architecture {
+      display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem;
+      align-items: stretch;
+    }
+    .arch-node {
+      grid-column: span 4; min-height: 210px; padding: 1.4rem;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .arch-node:nth-child(2) { grid-column: span 5; background: color-mix(in srgb, var(--accent) 13%, var(--surface)); }
+    .arch-node:nth-child(3) { grid-column: span 3; }
+    .arch-node:nth-child(4) { grid-column: span 7; }
+    .arch-node:nth-child(5) { grid-column: span 5; background: var(--surface-2); }
+    .arch-node p { margin: 1rem 0 0; color: var(--muted); }
+    .node-kicker { color: var(--accent-strong); font-size: .78rem; font-weight: 750; }
+
+    .signal-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: clamp(1.2rem, 3vw, 2.5rem); }
+    .signal-map { padding: clamp(1.3rem, 3vw, 2.2rem); border-radius: var(--radius); background: var(--surface); }
+    .signal-row { display: grid; grid-template-columns: 130px 1fr; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+    .signal-row:last-child { border-bottom: 0; }
+    .signal-row strong { color: var(--accent-strong); }
+    .signal-row span { color: var(--muted); }
+    .decision-note { padding: clamp(1.3rem, 3vw, 2.2rem); border-radius: var(--radius); background: var(--surface-2); }
+    .decision-note ul { margin: 1.2rem 0 0; padding-left: 1.2rem; color: var(--muted); }
+    .decision-note li + li { margin-top: .7rem; }
+
+    .mode-comparison { display: grid; grid-template-columns: 1.1fr .9fr .75fr; gap: 1rem; }
+    .mode { padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); }
+    .mode.featured { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    .mode p { color: var(--muted); }
+    .mode dl { margin: 1.2rem 0 0; }
+    .mode dt { margin-top: .8rem; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; }
+    .mode dd { margin: .2rem 0 0; }
+
+    .coverage-strip { margin-top: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .coverage-item { padding: 1.2rem 0; border-top: 2px solid var(--line); }
+    .coverage-item strong { display: block; font-size: 1.08rem; }
+    .coverage-item span { color: var(--muted); font-size: .88rem; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: .65rem; }
+    .pipe-step { position: relative; padding: 1.25rem; min-height: 190px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+    .pipe-step + .pipe-step::before { content: ""; position: absolute; left: -.66rem; top: 50%; width: .66rem; height: 1px; background: var(--accent); }
+    .pipe-step b { display: block; color: var(--accent-strong); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
+    .pipe-step strong { display: block; margin-top: .6rem; font-size: 1.12rem; }
+    .pipe-step p { margin: .55rem 0 0; color: var(--muted); font-size: .9rem; }
+
+    .analysis-split { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(1.5rem, 4vw, 4rem); align-items: start; }
+    .analysis-aside { position: sticky; top: calc(var(--header-height) + 2rem); }
+    .analysis-list { display: grid; gap: 1rem; }
+    .analysis-card { padding: clamp(1.3rem, 2.5vw, 2rem); border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+    .analysis-card p { color: var(--muted); }
+    .tagrow { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1rem; }
+    .tag { padding: .28rem .6rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .76rem; }
+    .tag.capability { color: var(--good); }
+    .tag.recommendation { color: var(--warning); }
+    .tag.dependency { color: var(--danger); }
+
+    .attributes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .attribute { padding: 1.5rem; border-radius: var(--radius); background: var(--surface); }
+    .attribute:nth-child(3) { background: var(--surface-2); }
+    .attribute:nth-child(4) { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+    .attribute p { color: var(--muted); }
+    code { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; color: var(--accent-strong); font-size: .92em; }
+
+    .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .service-panel { padding: clamp(1.4rem, 3vw, 2.2rem); border-radius: var(--radius); background: var(--surface); }
+    .service-panel p { color: var(--muted); }
+    .service-panel ol { padding-left: 1.2rem; color: var(--muted); }
+    .service-panel li + li { margin-top: .75rem; }
+    .rule-box { margin-top: 1.2rem; padding: 1rem; border-left: 3px solid var(--accent); background: var(--bg-soft); }
+
+    .investigation {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: .8rem;
+    }
+    .investigation article { grid-column: span 2; padding: 1.4rem; min-height: 220px; border-radius: var(--radius); background: var(--surface); }
+    .investigation article:nth-child(4), .investigation article:nth-child(5) { grid-column: span 3; background: var(--surface-2); }
+    .investigation article::before { content: attr(data-stage); display: block; color: var(--accent-strong); font-size: .76rem; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1.2rem; }
+    .investigation p { color: var(--muted); }
+
+    .direction { margin-top: 2.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .direction > div { padding: 1.4rem; border-radius: var(--radius); border: 1px solid var(--line); }
+    .direction p { color: var(--muted); }
+
+    .extension-grid { display: grid; grid-template-columns: 1.1fr .9fr .9fr; gap: 1rem; }
+    .extension { padding: 1.5rem; min-height: 260px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+    .extension:first-child { grid-row: span 2; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+    .extension:nth-child(4) { grid-column: span 2; background: var(--surface-2); }
+    .extension p { color: var(--muted); }
+    .extension ul { padding-left: 1.1rem; color: var(--muted); }
+
+    .roadmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .roadmap article { padding: 1.5rem; border-top: 3px solid var(--line); }
+    .roadmap article:first-child { border-color: var(--accent); }
+    .roadmap p { color: var(--muted); }
+    .acceptance { margin-top: 2rem; padding: clamp(1.4rem, 3vw, 2.3rem); border-radius: var(--radius); background: var(--surface); }
+    .acceptance ul { columns: 2; column-gap: 3rem; padding-left: 1.2rem; color: var(--muted); }
+    .acceptance li { break-inside: avoid; margin-bottom: .65rem; }
+
+    details { border-top: 1px solid var(--line); }
+    details:last-child { border-bottom: 1px solid var(--line); }
+    summary { cursor: pointer; padding: 1.15rem 0; font-weight: 700; }
+    details > div { padding: 0 0 1.25rem; color: var(--muted); }
+
+    .sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1.5rem; padding: 0; list-style: none; }
+    .sources li { padding: .9rem 0; border-bottom: 1px solid var(--line); }
+    .sources a { font-weight: 650; }
+    .sources small { display: block; color: var(--muted); margin-top: .25rem; }
+    .source-note { color: var(--muted); font-size: .9rem; }
+
+    .chapter-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: clamp(3rem, 6vw, 6rem); }
+    .chapter-nav a { text-decoration: none; color: var(--muted); }
+    .chapter-nav a:hover { color: var(--accent-strong); }
+    footer { padding: 2rem clamp(1.2rem, 6vw, 6rem); color: var(--muted); font-size: .82rem; }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .rail { position: sticky; top: var(--header-height); z-index: 15; width: 100%; height: auto; padding: .6rem 1rem; border-right: 0; border-bottom: 1px solid var(--line); background: var(--bg); overflow-x: auto; }
+      .rail-title, .rail-note { display: none; }
+      .rail-nav { display: flex; width: max-content; }
+      .rail-nav a { white-space: nowrap; }
+      .chapter { scroll-margin-top: 124px; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-copy { max-width: 750px; }
+      .hero-visual { min-height: 520px; }
+      .pipeline { grid-template-columns: repeat(2, 1fr); }
+      .pipe-step + .pipe-step::before { display: none; }
+      .extension-grid { grid-template-columns: 1fr 1fr; }
+      .extension:first-child { grid-row: auto; }
+      .extension:nth-child(4) { grid-column: span 1; }
+    }
+
+    @media (max-width: 760px) {
+      :root { --header-height: 62px; }
+      .brand span, .progress-shell, .control .wide-label, #fullscreenBtn { display: none; }
+      .topbar { gap: .5rem; padding: 0 .8rem; }
+      .controls { margin-left: auto; }
+      .control { padding: 0 .72rem; min-height: 36px; }
+      .chapter { padding: 3.8rem 1rem; }
+      .hero { min-height: auto; }
+      h1 { font-size: clamp(3rem, 15vw, 5rem); }
+      h2 { font-size: clamp(2.4rem, 11vw, 4rem); }
+      .hero-visual { min-height: 390px; }
+      .architecture, .mode-comparison, .signal-grid, .analysis-split, .attributes, .service-grid, .direction, .extension-grid, .roadmap { grid-template-columns: 1fr; }
+      .arch-node, .arch-node:nth-child(n), .extension:nth-child(n) { grid-column: auto; grid-row: auto; }
+      .analysis-aside { position: static; }
+      .pipeline { grid-template-columns: 1fr; }
+      .coverage-strip { grid-template-columns: 1fr 1fr; }
+      .investigation { grid-template-columns: 1fr; }
+      .investigation article, .investigation article:nth-child(n) { grid-column: auto; min-height: 0; }
+      .acceptance ul { columns: 1; }
+      .sources { grid-template-columns: 1fr; }
+      .chapter-nav { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --surface: #fff; --surface-2: #f2f2ed; --text: #111; --muted: #444; --line: #bbb; }
+      .topbar, .rail, .hero-actions, .lensbar, .chapter-nav { display: none !important; }
+      .layout { display: block; }
+      .chapter { break-inside: avoid; min-height: auto !important; padding: 2rem 0; }
+      .hero-visual { min-height: 350px; }
+    }
+  </style>
+</head>
+<body data-mode="read">
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <header class="topbar">
+    <div class="brand"><strong>Dynatrace</strong><span>exploración técnica</span></div>
+    <div class="progress-shell" aria-hidden="true"><div class="progress" id="progress"></div></div>
+    <div class="controls" aria-label="Controles de presentación">
+      <button class="control" id="modeBtn" type="button" aria-pressed="false" title="Alternar modo de lectura y presentación"><span class="wide-label">Modo </span>lectura</button>
+      <button class="control" id="themeBtn" type="button" aria-pressed="true" title="Cambiar tema">Tema</button>
+      <button class="control" id="fullscreenBtn" type="button" title="Pantalla completa">Pantalla completa</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Índice de capítulos">
+      <p class="rail-title">Capítulos</p>
+      <nav class="rail-nav">
+        <a href="#inicio">Inicio</a>
+        <a href="#lectura">Lectura ejecutiva</a>
+        <a href="#observabilidad">Observabilidad</a>
+        <a href="#infraestructura">Infraestructura</a>
+        <a href="#business-events">Business events</a>
+        <a href="#request-attributes">Request attributes</a>
+        <a href="#servicios">Servicios y fallos</a>
+        <a href="#incidencias">Incidencias</a>
+        <a href="#extensiones">Extensiones</a>
+        <a href="#adopcion">Adopción</a>
+        <a href="#fuentes">Fuentes</a>
+      </nav>
+      <p class="rail-note">Flechas arriba y abajo para avanzar. Las afirmaciones distinguen producto, recomendación y dependencia.</p>
+    </aside>
+
+    <main id="contenido">
+      <section class="chapter hero" id="inicio" data-title="Inicio">
+        <div class="chapter-inner hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">Observabilidad, infraestructura y causalidad</p>
+            <h1>Dynatrace en contexto.</h1>
+            <p class="lede">Una exploración centrada de Dynatrace, desde la señal técnica hasta el impacto de negocio.</p>
+            <div class="hero-actions">
+              <a class="button-link" href="#lectura">Comenzar análisis</a>
+              <a class="button-link secondary" href="analisis-dynatrace.md">Abrir referencia Markdown</a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <img src="assets/observability-topology.png" width="1536" height="1024" alt="Topología digital abstracta con una ruta causal destacada en ámbar">
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter" id="lectura" data-title="Lectura ejecutiva">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <h2>La tesis en una frase.</h2>
+            <p>Dynatrace obtiene su mayor valor cuando datos, topología, análisis y respuesta operan como una cadena continua.</p>
+            <div class="thesis" data-lens="recommendation">
+              <strong>Lectura principal</strong>
+              <p>No es solo una herramienta de métricas. Es una plataforma que conecta telemetría, contexto causal, experiencia, negocio y automatización. Su complejidad exige gobierno de datos, nomenclatura y coste.</p>
+            </div>
+            <div class="lensbar" role="group" aria-label="Filtrar tipo de afirmación">
+              <button class="control lens" data-filter="all" type="button" aria-pressed="true">Todo</button>
+              <button class="control lens" data-filter="capability" type="button" aria-pressed="false">Capacidad</button>
+              <button class="control lens" data-filter="recommendation" type="button" aria-pressed="false">Recomendación</button>
+              <button class="control lens" data-filter="dependency" type="button" aria-pressed="false">Dependencia</button>
+            </div>
+          </div>
+
+          <div class="architecture">
+            <article class="arch-node" data-lens="capability">
+              <span class="node-kicker">Captura</span>
+              <div><h3>OneAgent y OpenTelemetry</h3><p>Auto-descubrimiento y profundidad de código, junto a telemetría abierta y portable.</p></div>
+            </article>
+            <article class="arch-node" data-lens="capability">
+              <span class="node-kicker">Proceso</span>
+              <div><h3>OpenPipeline</h3><p>Normaliza, enriquece, enmascara, filtra, enruta y extrae señales antes del almacenamiento.</p></div>
+            </article>
+            <article class="arch-node" data-lens="capability">
+              <span class="node-kicker">Contexto</span>
+              <div><h3>Smartscape</h3><p>Entidades y relaciones convierten señales aisladas en dependencias navegables.</p></div>
+            </article>
+            <article class="arch-node" data-lens="capability">
+              <span class="node-kicker">Análisis</span>
+              <div><h3>Grail y DQL</h3><p>Logs, métricas, trazas, eventos y datos de negocio pueden analizarse con una capa común.</p></div>
+            </article>
+            <article class="arch-node" data-lens="recommendation">
+              <span class="node-kicker">Operación</span>
+              <div><h3>Dynatrace Intelligence y Workflows</h3><p>Correlación causal, priorización y automatización con controles de aprobación y runbooks.</p></div>
+            </article>
+          </div>
+          <div class="chapter-nav"><a href="#inicio">Anterior: Inicio</a><a href="#observabilidad">Siguiente: Observabilidad</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="observabilidad" data-title="Observabilidad">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <p class="eyebrow">Modelo de plataforma</p>
+            <h2>Observabilidad con contexto.</h2>
+            <p>La diferencia práctica no está en coleccionar más señales, sino en conservar la relación entre cada señal y la entidad que la produce.</p>
+          </div>
+
+          <div class="signal-grid">
+            <div class="signal-map" data-lens="capability">
+              <div class="signal-row"><strong>Métricas</strong><span>Comportamiento agregado, tendencias, capacidad, SLI y detección de anomalías.</span></div>
+              <div class="signal-row"><strong>Logs</strong><span>Detalle de ejecución, errores y auditoría. OpenPipeline procesa y Grail conserva el contexto consultable.</span></div>
+              <div class="signal-row"><strong>Trazas</strong><span>Recorrido de una petición entre servicios, spans, tiempos, errores y excepciones.</span></div>
+              <div class="signal-row"><strong>Eventos</strong><span>Cambios, despliegues, alertas y hechos de negocio que explican qué ocurrió y cuándo.</span></div>
+              <div class="signal-row"><strong>Topología</strong><span>Nodos y relaciones de Smartscape que permiten razonar sobre causa, dependencia e impacto.</span></div>
+            </div>
+            <aside class="decision-note" data-lens="recommendation">
+              <h3>Qué evaluar</h3>
+              <ul>
+                <li>¿La señal llega con identidad consistente de servicio, entorno, equipo y versión?</li>
+                <li>¿Existe correlación entre logs, spans, métricas y cambios?</li>
+                <li>¿La retención y el acceso respetan privacidad, coste y compliance?</li>
+                <li>¿Las alertas expresan impacto y acción, no solo umbrales técnicos?</li>
+              </ul>
+            </aside>
+          </div>
+
+          <div class="thesis" data-lens="dependency">
+            <strong>Límite importante</strong>
+            <p>La experiencia disponible depende de SaaS, DPS, aplicaciones instaladas, permisos, modo de monitorización y soporte de cada tecnología. Las vistas Latest y Classic conviven.</p>
+          </div>
+
+          <details>
+            <summary>Valor frente a monitorización tradicional</summary>
+            <div>La monitorización tradicional confirma estados conocidos. La observabilidad añade exploración de preguntas no previstas, correlación entre dominios y navegación desde el síntoma hasta la causa. Dynatrace implementa esta idea mediante Grail, DQL, Smartscape y Dynatrace Intelligence.</div>
+          </details>
+          <details>
+            <summary>Riesgo de adopción</summary>
+            <div>Sin convenciones de atributos, ownership y control de cardinalidad, la plataforma puede acumular datos difíciles de usar y costosos. La instrumentación debe tratarse como producto interno, no como una instalación puntual.</div>
+          </details>
+
+          <div class="chapter-nav"><a href="#lectura">Anterior: Lectura ejecutiva</a><a href="#infraestructura">Siguiente: Infraestructura</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="infraestructura" data-title="Infraestructura">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <h2>Infraestructura que conserva la relación con la aplicación.</h2>
+            <p>Hosts, procesos, contenedores, Kubernetes, cloud y red deben poder leerse como una misma cadena de dependencia.</p>
+          </div>
+
+          <div class="mode-comparison">
+            <article class="mode featured" data-lens="capability">
+              <h3>Full-stack</h3>
+              <p>Visibilidad de infraestructura más tracing, profiling e instrumentación de aplicaciones compatibles.</p>
+              <dl><dt>Úsalo para</dt><dd>Servicios críticos y diagnóstico a nivel de código.</dd><dt>Coste operativo</dt><dd>Mayor profundidad y mayor volumen de datos.</dd></dl>
+            </article>
+            <article class="mode" data-lens="capability">
+              <h3>Infrastructure</h3>
+              <p>Salud de host, procesos, red, logs y AIOps, sin tracing y profiling completos.</p>
+              <dl><dt>Úsalo para</dt><dd>Servidores de plataforma, appliances o capas sin necesidad de APM profundo.</dd></dl>
+            </article>
+            <article class="mode" data-lens="capability">
+              <h3>Discovery</h3>
+              <p>Inventario y métricas esenciales para descubrir cobertura y priorizar despliegues.</p>
+              <dl><dt>Úsalo para</dt><dd>Assessment inicial y cobertura de bajo impacto.</dd></dl>
+            </article>
+          </div>
+
+          <div class="coverage-strip">
+            <div class="coverage-item" data-lens="capability"><strong>Hosts y procesos</strong><span>CPU, memoria, disco, disponibilidad, procesos y servicios del sistema.</span></div>
+            <div class="coverage-item" data-lens="capability"><strong>Kubernetes</strong><span>Clusters, namespaces, workloads, pods, eventos, logs y eficiencia de recursos.</span></div>
+            <div class="coverage-item" data-lens="capability"><strong>Cloud</strong><span>AWS, Azure y GCP mediante conexiones y telemetría de proveedor.</span></div>
+            <div class="coverage-item" data-lens="capability"><strong>Red</strong><span>Conexiones de procesos, retransmisiones, flujos, SNMP y disponibilidad.</span></div>
+          </div>
+
+          <div class="thesis" data-lens="recommendation">
+            <strong>Diseño recomendado</strong>
+            <p>Asignar el modo por criticidad y caso de uso. Full-stack en transacciones críticas, Infrastructure en capas de soporte y Discovery para inventario. Añadir integración cloud y Kubernetes platform monitoring donde OneAgent no cubra el plano de control.</p>
+          </div>
+
+          <details>
+            <summary>Kubernetes: por qué combinar plataforma y aplicación</summary>
+            <div>Application observability instrumenta procesos en pods y obtiene métricas del contenedor. Kubernetes platform monitoring añade recursos, topología, métricas de cluster, eventos y alertas. Juntas explican si una latencia nace en código, recursos del workload o estado del cluster.</div>
+          </details>
+          <details>
+            <summary>Red: de la métrica al enlace afectado</summary>
+            <div>OneAgent puede relacionar tráfico y retransmisiones con pares de procesos. Para dispositivos y redes externas, Dynatrace amplía cobertura con SNMP, NetFlow, logs cloud, monitores de disponibilidad y extensiones específicas.</div>
+          </details>
+
+          <div class="chapter-nav"><a href="#observabilidad">Anterior: Observabilidad</a><a href="#business-events">Siguiente: Business events</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="business-events" data-title="Business events">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <p class="eyebrow">Funcionalidad</p>
+            <h2>El negocio como señal observable.</h2>
+            <p>Business Events representa acciones con significado económico u operativo, como una compra, un pago, una suscripción o una devolución.</p>
+          </div>
+
+          <div class="pipeline" data-lens="capability">
+            <article class="pipe-step"><b>Origen</b><strong>Capturar</strong><p>OneAgent, RUM, OpenKit, API, logs, spans o Workflows.</p></article>
+            <article class="pipe-step"><b>Contrato</b><strong>Identificar</strong><p>Tipo, origen, dominio, acción, tiempo y claves de correlación.</p></article>
+            <article class="pipe-step"><b>Pipeline</b><strong>Procesar</strong><p>Filtrar, parsear, enriquecer, transformar y asignar retención.</p></article>
+            <article class="pipe-step"><b>Grail</b><strong>Analizar</strong><p>DQL para tendencias, outliers, embudos, pérdidas e impacto.</p></article>
+            <article class="pipe-step"><b>Acción</b><strong>Operar</strong><p>Dashboards, alertas, notebooks y automatización.</p></article>
+          </div>
+
+          <div class="analysis-split" style="margin-top: 3rem">
+            <aside class="analysis-aside">
+              <h3>Pregunta correcta</h3>
+              <p class="lede">No preguntar solo “¿la API funciona?”, sino “¿cuántas operaciones de negocio fallaron y qué componente las afectó?”.</p>
+            </aside>
+            <div class="analysis-list">
+              <article class="analysis-card" data-lens="recommendation"><h3>Modelo de evento</h3><p>Definir un esquema estable, claves de idempotencia, unidades monetarias, privacidad y ownership antes de capturar.</p><div class="tagrow"><span class="tag recommendation">Recomendación</span></div></article>
+              <article class="analysis-card" data-lens="capability"><h3>OpenPipeline como opción preferente</h3><p>La documentación actual recomienda OpenPipeline sobre el pipeline clásico para procesamiento escalable, routing, seguridad y extracción.</p><div class="tagrow"><span class="tag capability">Capacidad</span></div></article>
+              <article class="analysis-card" data-lens="dependency"><h3>Precisión y coste</h3><p>Dynatrace describe los Business Events como datos business-grade no dependientes de muestreo. Esa precisión exige controlar volumen, retención y campos sensibles.</p><div class="tagrow"><span class="tag dependency">Dependencia</span></div></article>
+            </div>
+          </div>
+
+          <div class="chapter-nav"><a href="#infraestructura">Anterior: Infraestructura</a><a href="#request-attributes">Siguiente: Request attributes</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="request-attributes" data-title="Request attributes">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <h2>Dar significado a cada petición.</h2>
+            <p>Los Request Attributes son pares clave-valor asociados a requests. Convierten una traza técnica en una unidad filtrable por contexto de negocio o ejecución.</p>
+          </div>
+
+          <div class="attributes">
+            <article class="attribute" data-lens="capability"><h3>Fuentes</h3><p>Datos web, parámetros de métodos Java, .NET y PHP, OneAgent SDK y atributos de span, entre otras fuentes configurables.</p></article>
+            <article class="attribute" data-lens="capability"><h3>Usos</h3><p>Filtrado, nombres de requests, errores de lógica de negocio, enriquecimiento de trazas y métricas calculadas.</p></article>
+            <article class="attribute" data-lens="dependency"><h3>Privacidad</h3><p>Un atributo puede marcarse como confidencial. No se deben capturar tokens, credenciales, PII sin base legal ni valores de cardinalidad no controlada.</p></article>
+            <article class="attribute" data-lens="dependency"><h3>Límites documentados</h3><p>Hasta <code>100</code> atributos por request, <code>10</code> valores por atributo y <code>1.000</code> atributos capturados por traza distribuida.</p></article>
+          </div>
+
+          <div class="thesis" data-lens="recommendation">
+            <strong>Patrón de diseño</strong>
+            <p>Capturar claves que cambien una decisión: tipo de operación, canal, región, resultado funcional o versión. Evitar IDs únicos como dimensión de métricas; conservarlos solo donde aporten trazabilidad y con el control de acceso adecuado.</p>
+          </div>
+
+          <details>
+            <summary>Ejemplo: error funcional sin HTTP 5xx</summary>
+            <div>Una API puede devolver HTTP 200 y un campo <code>payment.status=DECLINED</code>. Un Request Attribute puede capturar ese estado y una custom error rule puede marcar la petición como fallida cuando el valor cumpla la condición definida.</div>
+          </details>
+          <details>
+            <summary>Ejemplo: análisis de rendimiento por contexto</summary>
+            <div>Un atributo como <code>booking.destination</code> permite segmentar tiempo de respuesta y fallos por destino, siempre que el conjunto de valores sea controlable y no revele información personal.</div>
+          </details>
+
+          <div class="chapter-nav"><a href="#business-events">Anterior: Business events</a><a href="#servicios">Siguiente: Servicios y fallos</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="servicios" data-title="Servicios y fallos">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <p class="eyebrow">Detección y semántica</p>
+            <h2>Personalizar sin romper la topología.</h2>
+            <p>La detección define qué es un servicio. El naming decide cómo se entiende. Las reglas de fallo deciden qué cuenta como error.</p>
+          </div>
+
+          <div class="service-grid">
+            <article class="service-panel" data-lens="capability">
+              <h3>Service Detection v2</h3>
+              <p>Usa reglas sobre atributos de recurso de spans. Las reglas personalizadas se evalúan antes que las predeterminadas y la primera coincidencia se aplica.</p>
+              <ol><li>Preferir <code>service.name</code> y convenciones OpenTelemetry.</li><li>Usar atributos adicionales para separar identidad sin ensuciar el nombre.</li><li>Reservar tags y campos primarios para entorno, región, equipo y coste.</li></ol>
+            </article>
+            <article class="service-panel" data-lens="dependency">
+              <h3>Service Detection v1 y custom services</h3>
+              <p>SDv1 detecta por propiedades específicas de tecnología. Permite reglas de naming, request naming y servicios personalizados con entry points en tecnologías soportadas.</p>
+              <div class="rule-box">Los custom services son útiles para lógica no detectada, pero añaden instrumentación y deben validarse por tecnología, versión y patrón de ejecución.</div>
+            </article>
+            <article class="service-panel" data-lens="capability">
+              <h3>Failure detection</h3>
+              <p>Por defecto considera excepciones que abortan llamadas, páginas de error, HTTP 500-599 en servidor y HTTP 400-599 desde la perspectiva cliente.</p>
+              <ol><li>Configurable globalmente o por servicio.</li><li>Las reglas se evalúan de arriba abajo.</li><li>El primer match aplica.</li><li>Puede incluir códigos, excepciones y errores por Request Attribute.</li></ol>
+            </article>
+            <article class="service-panel" data-lens="recommendation">
+              <h3>Regla operativa</h3>
+              <p>Definir fallo según el contrato real del servicio. Excluir excepciones esperadas, añadir excepciones manejadas que sí implican fallo y capturar resultados funcionales que no aparecen como HTTP error.</p>
+              <div class="rule-box">Revisar el efecto sobre failure rate y alertas con tráfico real antes de desplegar la regla a todo el entorno.</div>
+            </article>
+          </div>
+
+          <div class="chapter-nav"><a href="#request-attributes">Anterior: Request attributes</a><a href="#incidencias">Siguiente: Incidencias</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="incidencias" data-title="Incidencias">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <h2>Del impacto a la línea de código.</h2>
+            <p>Una investigación eficaz cambia de nivel sin perder el contexto: problema, topología, flujo, request, span, excepción y log.</p>
+          </div>
+
+          <div class="investigation">
+            <article data-stage="Priorizar" data-lens="capability"><h3>Problema</h3><p>Dynatrace Intelligence agrupa anomalías conectadas, destaca causa raíz e impacto y reduce alertas duplicadas.</p></article>
+            <article data-stage="Recorrer" data-lens="capability"><h3>Service Flow</h3><p>Mira hacia delante desde un servicio: destinos llamados, carga, latencia y contribución al tiempo total.</p></article>
+            <article data-stage="Remontar" data-lens="capability"><h3>Backtrace</h3><p>Mira hacia atrás: qué cadena de llamadas, servicio o acción de usuario condujo al servicio analizado.</p></article>
+            <article data-stage="Aislar" data-lens="capability"><h3>Distributed Tracing</h3><p>Filtra requests y spans, usa histogramas y facetas, abre la traza concreta y correlaciona logs y errores.</p></article>
+            <article data-stage="Explicar" data-lens="capability"><h3>Exception Analysis</h3><p>Examina tendencias, tipos, stack traces agregados, requests afectados y logs relacionados.</p></article>
+          </div>
+
+          <div class="direction">
+            <div data-lens="recommendation"><h3>Cuando el síntoma está aguas arriba</h3><p>Empieza en la experiencia o servicio afectado, recorre Service Flow, localiza el consumidor de tiempo y abre las trazas lentas o fallidas.</p></div>
+            <div data-lens="recommendation"><h3>Cuando el síntoma está aguas abajo</h3><p>Empieza en la base de datos o servicio sospechoso, usa Backtrace para identificar quién lo invoca y qué entrada de usuario origina la carga.</p></div>
+          </div>
+
+          <div class="thesis" data-lens="dependency">
+            <strong>Latest frente a Classic</strong>
+            <p>Distributed Tracing y Exception Analysis tienen experiencias Latest basadas en Grail. Service Flow y Service Backtrace se documentan todavía como Classic. El flujo real debe adaptarse a las aplicaciones y licencia disponibles en el tenant.</p>
+          </div>
+
+          <div class="chapter-nav"><a href="#servicios">Anterior: Servicios y fallos</a><a href="#extensiones">Siguiente: Extensiones</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="extensiones" data-title="Extensiones">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <p class="eyebrow">Cobertura más allá del agente</p>
+            <h2>Extender la topología, no solo añadir métricas.</h2>
+            <p>Extensions Framework permite observar tecnologías remotas o específicas mediante fuentes declarativas y una ejecución controlada por OneAgent o ActiveGate.</p>
+          </div>
+
+          <div class="extension-grid">
+            <article class="extension" data-lens="capability">
+              <h3>Arquitectura</h3>
+              <p>Extension Execution Controller ejecuta extensiones localmente en OneAgent o remotamente desde Environment ActiveGate.</p>
+              <ul><li>SQL para bases de datos.</li><li>SNMP para red y appliances.</li><li>WMI para Windows remoto.</li><li>Prometheus para endpoints de métricas.</li><li>JMX para MBeans.</li><li>Python para APIs o casos no cubiertos.</li></ul>
+            </article>
+            <article class="extension" data-lens="capability"><h3>Bases de datos</h3><p>La app Databases y extensiones SQL cubren Oracle, Microsoft SQL Server, PostgreSQL, MySQL, Snowflake, SAP HANA, IBM DB2 y MariaDB, con métricas, query insights y SQL personalizado según extensión.</p></article>
+            <article class="extension" data-lens="capability"><h3>F5 BIG-IP</h3><p>La extensión oficial usa SNMP v2c o v3, monitoriza LTM y DNS, crea topología de dispositivos, interfaces, virtual servers, pools y miembros, e incluye dashboards y alertas.</p></article>
+            <article class="extension" data-lens="recommendation"><h3>Selección y operación</h3><p>Validar conectividad del ActiveGate, permisos mínimos, alta disponibilidad por grupo, health de la configuración y ownership del dispositivo. Activar solo feature sets necesarios.</p></article>
+            <article class="extension" data-lens="dependency"><h3>Coste y cardinalidad</h3><p>Las extensiones ingieren datapoints. El número de entidades, interfaces, pools, queries y dimensiones afecta consumo. La documentación de F5 recomienda filtrar entidades y módulos para evitar sobreconsumo.</p></article>
+          </div>
+
+          <details>
+            <summary>F5: dos señales complementarias</summary>
+            <div>La extensión SNMP aporta estado, rendimiento y topología de LTM y DNS. F5 BIG-IP Log Streaming puede enviar eventos estructurados de LTM, WAF y sistema. Juntas permiten relacionar capacidad, salud y eventos con las aplicaciones backend.</div>
+          </details>
+          <details>
+            <summary>Base de datos: extensión frente a trazas</summary>
+            <div>La traza explica qué servicio ejecutó una sentencia y cuánto tardó. La extensión explica la salud del motor, recursos, sesiones, backups y métricas internas. La cobertura completa necesita ambas perspectivas cuando la base de datos es crítica.</div>
+          </details>
+          <details>
+            <summary>Extensión propia: criterio</summary>
+            <div>Crear una extensión solo cuando el Hub y la telemetría estándar no cubran la pregunta operativa. Diseñar primero entidades, relaciones, métricas, dimensiones, alertas y coste esperado. Evitar convertir la extensión en un colector indiscriminado.</div>
+          </details>
+
+          <div class="chapter-nav"><a href="#incidencias">Anterior: Incidencias</a><a href="#adopcion">Siguiente: Adopción</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="adopcion" data-title="Adopción">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <h2>Adoptar por preguntas, no por pantallas.</h2>
+            <p>Una implantación útil empieza con journeys y decisiones operativas, después selecciona señales, contexto y automatización.</p>
+          </div>
+
+          <div class="roadmap">
+            <article data-lens="recommendation"><h3>Descubrir</h3><p>Inventario, criticidad, journeys, equipos, SLO, riesgos y fuentes de datos.</p></article>
+            <article data-lens="recommendation"><h3>Conectar</h3><p>OneAgent, OpenTelemetry, cloud, Kubernetes y extensiones con identidad coherente.</p></article>
+            <article data-lens="recommendation"><h3>Operar</h3><p>Problemas accionables, ownership, alertas, runbooks, dashboards y control de coste.</p></article>
+            <article data-lens="recommendation"><h3>Escalar</h3><p>Configuración como código, revisión de calidad, automatización y mejora continua.</p></article>
+          </div>
+
+          <div class="acceptance" data-lens="recommendation">
+            <h3>Criterios de aceptación de una primera fase</h3>
+            <ul>
+              <li>Servicios críticos con nombres y ownership consistentes.</li>
+              <li>Topología desde frontend hasta base de datos o dependencia externa.</li>
+              <li>Requests filtrables por contexto funcional sin exponer datos sensibles.</li>
+              <li>Failure rate alineado con errores técnicos y funcionales reales.</li>
+              <li>Business Events con esquema, retención y responsables definidos.</li>
+              <li>Runbook de investigación usando Problem, flow, trace, exception y logs.</li>
+              <li>Extensiones con health, HA, filtros y consumo estimado.</li>
+              <li>Permisos y acceso a Grail validados por rol.</li>
+            </ul>
+          </div>
+
+          <div class="thesis" data-lens="dependency">
+            <strong>Decisiones que requieren datos del entorno</strong>
+            <p>Modelo de licencia, SaaS o Managed, versiones de OneAgent y ActiveGate, runtimes, cloud, Kubernetes, volumen de telemetría, requisitos de privacidad, red, criticidad y herramientas ITSM.</p>
+          </div>
+
+          <div class="chapter-nav"><a href="#extensiones">Anterior: Extensiones</a><a href="#fuentes">Siguiente: Fuentes</a></div>
+        </div>
+      </section>
+
+      <section class="chapter" id="fuentes" data-title="Fuentes">
+        <div class="chapter-inner">
+          <div class="section-head">
+            <p class="eyebrow">Trazabilidad</p>
+            <h2>Documentación oficial consultada.</h2>
+            <p>Selección principal, revisada el 31 de agosto de 2026. La referencia Markdown contiene el catálogo ampliado y notas por apartado.</p>
+          </div>
+
+          <ul class="sources">
+            <li><a href="https://www.dynatrace.com/es/" target="_blank" rel="noreferrer">Dynatrace España</a><small>Visión de producto y posicionamiento.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/what-is-dynatrace" target="_blank" rel="noreferrer">What is Dynatrace</a><small>Componentes de la plataforma.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/grail" target="_blank" rel="noreferrer">Grail</a><small>Almacenamiento y análisis unificado.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability" target="_blank" rel="noreferrer">Infrastructure Observability</a><small>Hosts, procesos, contenedores, red, cloud y bases de datos.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/platform/oneagent/monitoring-modes/monitoring-modes" target="_blank" rel="noreferrer">OneAgent monitoring modes</a><small>Full-stack, Infrastructure y Discovery.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-basic-concepts" target="_blank" rel="noreferrer">Business Observability concepts</a><small>Business Events y business-grade data.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/request-attributes" target="_blank" rel="noreferrer">Request attributes</a><small>Captura, usos, confidencialidad y límites.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection" target="_blank" rel="noreferrer">Service detection</a><small>Comparación SDv1 y SDv2.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/service-detection/service-detection-v1/configure-service-failure-detection" target="_blank" rel="noreferrer">Failure detection</a><small>HTTP, excepciones y custom errors.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing" target="_blank" rel="noreferrer">Distributed Tracing</a><small>Requests, spans, filtros y excepciones.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis" target="_blank" rel="noreferrer">Root cause analysis</a><small>Correlación causal e impacto.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/concepts" target="_blank" rel="noreferrer">About Extensions</a><small>EEC, OneAgent y ActiveGate.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/get-started" target="_blank" rel="noreferrer">Database monitoring</a><small>App Databases y extensiones SQL.</small></li>
+            <li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/f5-big-ip-ltm-1" target="_blank" rel="noreferrer">F5 BIG-IP extension</a><small>SNMP, LTM, DNS, topología y consumo.</small></li>
+          </ul>
+
+          <p class="source-note">Aviso: varias páginas oficiales se identifican como Latest Dynatrace y otras como Dynatrace Classic. Las rutas, nombres y requisitos pueden cambiar con la versión del tenant. Validar siempre en el entorno objetivo.</p>
+
+          <div class="chapter-nav"><a href="#adopcion">Anterior: Adopción</a><a href="#inicio">Volver al inicio</a></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>Exploración elaborada con documentación oficial de Dynatrace. Fecha de revisión: 31/08/2026.</footer>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const body = document.body;
+      const sections = [...document.querySelectorAll('.chapter')];
+      const navLinks = [...document.querySelectorAll('.rail-nav a')];
+      const progress = document.getElementById('progress');
+      const modeBtn = document.getElementById('modeBtn');
+      const themeBtn = document.getElementById('themeBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const savedTheme = localStorage.getItem('dynatrace-analysis-theme');
+      const preferredLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+
+      root.dataset.theme = savedTheme || (preferredLight ? 'light' : 'dark');
+      themeBtn.setAttribute('aria-pressed', String(root.dataset.theme === 'dark'));
+
+      const setActive = (id) => {
+        const index = sections.findIndex(section => section.id === id);
+        navLinks.forEach(link => link.setAttribute('aria-current', String(link.getAttribute('href') === `#${id}`)));
+        if (index >= 0) progress.style.width = `${((index + 1) / sections.length) * 100}%`;
+        document.title = `${sections[index]?.dataset.title || 'Dynatrace'} | Exploración técnica`;
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setActive(visible.target.id);
+      }, { rootMargin: '-22% 0px -58% 0px', threshold: [0, .15, .4, .7] });
+      sections.forEach(section => observer.observe(section));
+
+      modeBtn.addEventListener('click', () => {
+        const presenting = body.dataset.mode !== 'present';
+        body.dataset.mode = presenting ? 'present' : 'read';
+        modeBtn.setAttribute('aria-pressed', String(presenting));
+        modeBtn.innerHTML = presenting ? '<span class="wide-label">Modo </span>presentación' : '<span class="wide-label">Modo </span>lectura';
+      });
+
+      themeBtn.addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('dynatrace-analysis-theme', root.dataset.theme);
+        themeBtn.setAttribute('aria-pressed', String(root.dataset.theme === 'dark'));
+      });
+
+      fullscreenBtn.addEventListener('click', async () => {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+        else await document.exitFullscreen?.();
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (!['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp'].includes(event.key)) return;
+        if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement?.tagName)) return;
+        event.preventDefault();
+        const current = navLinks.findIndex(link => link.getAttribute('aria-current') === 'true');
+        const direction = event.key === 'ArrowDown' || event.key === 'PageDown' ? 1 : -1;
+        const target = sections[Math.max(0, Math.min(sections.length - 1, current + direction))];
+        target?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      });
+
+      document.querySelectorAll('.lens').forEach(button => {
+        button.addEventListener('click', () => {
+          const filter = button.dataset.filter;
+          document.querySelectorAll('.lens').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+          document.querySelectorAll('[data-lens]').forEach(item => item.classList.toggle('is-dimmed', filter !== 'all' && item.dataset.lens !== filter));
+        });
+      });
+
+      setActive('inicio');
+    })();
+  </script>
+</body>
+</html>
